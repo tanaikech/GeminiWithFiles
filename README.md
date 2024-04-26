@@ -104,7 +104,7 @@ This library uses another library [PDFApp](https://github.com/tanaikech/PDFApp).
 
 ### 2. Use GeminiWithFiles in your own Google Apps Script project
 
-If you use this library in your own Google Apps Script project, please copy and paste the script "classGeminiWithFiles.js" into your Google Apps Script project. By this, the script can be used.
+If you use this library in your own Google Apps Script project, please copy and paste the script ["classGeminiWithFiles.js"](https://github.com/tanaikech/GeminiWithFiles/blob/master/classGeminiWithFiles.js) into your Google Apps Script project. By this, the script can be used.
 
 "main.js" is used for the Google Apps Script library. So, in this pattern, you are not required to use it.
 
