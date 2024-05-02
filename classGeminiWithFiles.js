@@ -17,9 +17,10 @@ class GeminiWithFiles {
    * @param {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
    * @param {Array} object.history History for continuing chat.
    * @param {Array} object.functions If you want to give the custom functions, please use this.
+   * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-pro-latest";
@@ -73,6 +74,9 @@ class GeminiWithFiles {
 
     /** @private */
     this.fileList = [];
+
+    /** @private */
+    this.response_mime_type = "";
 
     /**
      * Functions for function calling of Gemini API. You can see the default functions as follows. You can create the value of functions by confirming the default values.
@@ -167,7 +171,10 @@ class GeminiWithFiles {
       customType_array: (e) => e.items,
       customType_object: (e) => e.items,
     };
-
+    if (response_mime_type && response_mime_type != "") {
+      this.response_mime_type = response_mime_type;
+      this.functions = {};
+    }
     if (functions && functions.params_) {
       this.functions = functions;
     }
@@ -402,9 +409,12 @@ class GeminiWithFiles {
     if (!object || typeof object != "object") {
       throw new Error("Please set object including question.");
     }
-    let { q } = object;
-    if (!q || q === "") {
+    let { q, jsonSchema } = object;
+    if ((!q || q === "") && (!jsonSchema || typeof jsonSchema != "object")) {
       throw new Error("Please set a question.");
+    }
+    if (!q || q === "" && (jsonSchema || typeof jsonSchema == "object")) {
+      q = `Follow JSON schema.<JSONSchema>${JSON.stringify(jsonSchema)}</JSONSchema>`;
     }
     let uploadedFiles = this.fileList.length > 0 ? this.fileList : [];
     if (uploadedFiles.length > 0) {
@@ -455,6 +465,9 @@ class GeminiWithFiles {
     do {
       retry--;
       const payload = { contents, tools: [{ function_declarations }] };
+      if (this.response_mime_type != "") {
+        payload.generationConfig = { response_mime_type: this.response_mime_type };
+      }
       if (this.doCountToken) {
         const res = this.fetch_({
           url: this.addQueryParameters_(this.urlCountToken, this.queryParameters),
@@ -531,7 +544,14 @@ class GeminiWithFiles {
       console.warn(output);
       return "No values.";
     }
-    return output.text.trim();
+    // return output.text.trim();
+    const returnValue = output.text.trim();
+    try {
+      return JSON.parse(returnValue);
+    } catch (stack) {
+      console.warn(stack);
+      return returnValue;
+    }
   }
 
   /**
