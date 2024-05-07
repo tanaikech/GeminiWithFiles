@@ -168,9 +168,12 @@ The value of `object` is as follows.
 {Array} object.history History for continuing chat.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
+{Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
 ```
 
-When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
+- When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
+
+- When you want to use `systemInstruction`, please confirm the official document [Ref](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini).
 
 <a name="setfileIds"></a>
 
@@ -377,6 +380,26 @@ When this script is run, the following result is obtained.
   { "recipe_name": "Sugar Cookies" },
   { "recipe_name": "Snickerdoodle Cookies" }
 ]
+```
+
+### Use custom parts
+
+When `q` is used, only text question can be used for generating content. When you want to use your custom parts, you can do it as follows.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = GeminiWithFiles.geminiWithFiles({
+    apiKey,
+    response_mime_type: "application/json",
+  }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, response_mime_type: "application/json" }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const parts = [{ text: "What is Google Apps Script?" }];
+  const res = g.generateContent({ parts });
+  console.log(res);
+}
 ```
 
 ## Additional information
@@ -1030,6 +1053,8 @@ I have already proposed the following future requests to the Google issue tracke
 
 # Note
 
+- When I tested the function calling for controlling the output format, I sometimes got an error of the status code 500. But, when I tested `response_mime_type`, such an error rarely occurred. I'm not sure whether this is the current specification.
+
 - The top abstract image was created by [Gemini](https://gemini.google.com/) from the section of "Description".
 
 ---
@@ -1059,5 +1084,11 @@ I have already proposed the following future requests to the Google issue tracke
 - v1.0.1 (May 2, 2024)
 
   1. `response_mime_type` got to be able to be used for controlling the output format. [Ref](#samplesresponsemimetype)
+
+- v1.0.2 (May 7, 2024)
+
+  1. For generating content, `parts` was added. From this version, you can select one of `q`, `jsonSchema`, and `parts`.
+  2. From this version, `systemInstruction` can be used.
+  3. In order to call the function call, `toolConfig` was added to the request body.
 
 [TOP](#top)

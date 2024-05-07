@@ -18,9 +18,10 @@ class GeminiWithFiles {
    * @param {Array} object.history History for continuing chat.
    * @param {Array} object.functions If you want to give the custom functions, please use this.
    * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
+   * @param {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, systemInstruction } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-pro-latest";
@@ -77,6 +78,9 @@ class GeminiWithFiles {
 
     /** @private */
     this.response_mime_type = "";
+
+    /** @private */
+    this.systemInstruction = systemInstruction || null;
 
     /**
      * Functions for function calling of Gemini API. You can see the default functions as follows. You can create the value of functions by confirming the default values.
@@ -177,6 +181,18 @@ class GeminiWithFiles {
     }
     if (functions && functions.params_) {
       this.functions = functions;
+    }
+
+    /** @private */
+    this.toolConfig = null;
+    const keys = Object.keys(this.functions);
+    if (keys.length > 0) {
+      this.toolConfig = {
+        functionCallingConfig: {
+          mode: "ANY",
+          allowedFunctionNames: keys.filter(e => e != "params")
+        }
+      }
     }
 
     /**
@@ -409,11 +425,11 @@ class GeminiWithFiles {
     if (!object || typeof object != "object") {
       throw new Error("Please set object including question.");
     }
-    let { q, jsonSchema } = object;
-    if ((!q || q === "") && (!jsonSchema || typeof jsonSchema != "object")) {
+    let { q, jsonSchema, parts } = object;
+    if ((!q || q === "") && (!jsonSchema || typeof jsonSchema != "object") && (!parts || !Array.isArray(parts))) {
       throw new Error("Please set a question.");
     }
-    if (!q || q === "" && (jsonSchema || typeof jsonSchema == "object")) {
+    if ((!q || q === "") && (jsonSchema || typeof jsonSchema == "object") && !parts) {
       q = `Follow JSON schema.<JSONSchema>${JSON.stringify(jsonSchema)}</JSONSchema>`;
     }
     let uploadedFiles = this.fileList.length > 0 ? this.fileList : [];
@@ -457,7 +473,12 @@ class GeminiWithFiles {
         { fileData: { fileUri: uri, mimeType } }
       ];
     });
-    const contents = [...this.history, { parts: [{ text: q }, ...files], role: "user" }];
+    const contents = [...this.history]
+    if (!q && !jsonSchema && parts) {
+      contents.push({ parts: [...parts, ...files], role: "user" });
+    } else {
+      contents.push({ parts: [{ text: q }, ...files], role: "user" });
+    }
     let check = true;
     const results = [];
     let retry = 5;
@@ -467,6 +488,12 @@ class GeminiWithFiles {
       const payload = { contents, tools: [{ function_declarations }] };
       if (this.response_mime_type != "") {
         payload.generationConfig = { response_mime_type: this.response_mime_type };
+      }
+      if (this.systemInstruction) {
+        payload.systemInstruction = this.systemInstruction;
+      }
+      if (this.toolConfig) {
+        payload.toolConfig = this.toolConfig;
       }
       if (this.doCountToken) {
         const res = this.fetch_({
@@ -491,7 +518,7 @@ class GeminiWithFiles {
         console.warn("Retry by the status code 500.");
         console.warn(res.getContentText());
         Utilities.sleep(3000);
-        this.generateContent({ q });
+        this.generateContent({ q, jsonSchema, parts });
       } else if (res.getResponseCode() != 200) {
         throw new Error(res.getContentText());
       }
@@ -500,10 +527,10 @@ class GeminiWithFiles {
         results.push(candidates[0]);
         break;
       }
-      const parts = (candidates && candidates[0]?.content?.parts) || [];
-      results.push(...parts);
-      contents.push({ parts: parts.slice(), role: "model" });
-      check = parts.find((o) => o.hasOwnProperty("functionCall"));
+      const partsAr = (candidates && candidates[0]?.content?.parts) || [];
+      results.push(...partsAr);
+      contents.push({ parts: partsAr.slice(), role: "model" });
+      check = partsAr.find((o) => o.hasOwnProperty("functionCall"));
       if (check && check.functionCall?.name) {
         const functionName = check.functionCall.name;
         const res2 = this.functions[functionName](
@@ -520,8 +547,8 @@ class GeminiWithFiles {
           ],
           role: "function",
         });
-        parts.push({ functionResponse: res2 });
-        results.push(...parts);
+        partsAr.push({ functionResponse: res2 });
+        results.push(...partsAr);
         this.history = contents;
         if (/^customType_.*/.test(functionName)) {
           if (res2.hasOwnProperty("items") && Object.keys(e).length == 1) {
@@ -544,12 +571,11 @@ class GeminiWithFiles {
       console.warn(output);
       return "No values.";
     }
-    // return output.text.trim();
     const returnValue = output.text.trim();
     try {
       return JSON.parse(returnValue);
     } catch (stack) {
-      console.warn(stack);
+      // console.warn(stack);
       return returnValue;
     }
   }
