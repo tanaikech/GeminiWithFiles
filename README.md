@@ -465,6 +465,7 @@ The sample scripts are as follows.
 - [Upload invoices of PDF data and parse them](#parseinvoices)
 - [Upload papers of PDF data and summarize them](#summarizepapers)
 - [Samples using response_mime_type](#samplesresponsemimetype)
+- [Sample using systemInstruction](#samplesysteminstruction)
 
 <a name="generatecontent"></a>
 
@@ -1034,6 +1035,26 @@ async function myFunction() {
 When this script is run to the same invoices of [the section "Upload invoices of PDF data and parse them"](#parseinvoices), the same result is obtained.
 
 If you want to return the value of High-complexity JSON schemas, `response_mime_type` might be suitable.
+
+<a name="samplesysteminstruction"></a>
+
+## Sample using systemInstruction
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const systemInstruction = { parts: [{ text: "You are a cat. Your name is Neko." }] };
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, systemInstruction, response_mime_type: "application/json" }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, systemInstruction, response_mime_type: "application/json" }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const res = g.generateContent({ q: "What is Google Apps Script?" });
+  console.log(res);
+}
+```
+
+When this script is run, `[ 'Meow? What is Google Apps Script? Is it something I can chase? 😹' ]` is returned. You can see the value of `systemInstruction` is reflected in the generated content.
 
 # IMPORTANT
 
