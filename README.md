@@ -343,6 +343,8 @@ function myFunction() {
 
 In this script, the content is generated with the function calling. If you want to simply generate content without the function calling, please use the following script.
 
+**If an error like `"code": 500, "message": "An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting", "status": "INTERNAL"` occurs, please test `functions: {}` as follows.**
+
 ```javascript
 function myFunction() {
   const apiKey = "###"; // Please set your API key.
