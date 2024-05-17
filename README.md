@@ -341,6 +341,20 @@ function myFunction() {
 }
 ```
 
+In this script, the content is generated with the function calling. If you want to simply generate content without the function calling, please use the following script.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, functions: {} }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, functions: {} }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const res = g.generateContent({ q: "What is Google Apps Script?" });
+  console.log(res);
+}
+```
+
 When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method as follows. In this case, by giving only JSON schema, this library can return a valid object. You can also see the detailed information about `response_mime_type` at [my report](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85).
 
 ```javascript
