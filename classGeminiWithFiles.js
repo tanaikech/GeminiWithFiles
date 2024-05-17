@@ -182,6 +182,9 @@ class GeminiWithFiles {
     if (functions && functions.params_) {
       this.functions = functions;
     }
+    if (functions && Object.keys(functions).length == 0) {
+      this.functions = {};
+    }
 
     /** @private */
     this.toolConfig = null;
@@ -421,7 +424,7 @@ class GeminiWithFiles {
    * @param {String} object.q Input text.
    * @returns {(String|Number|Array|Object|Boolean)} Output value.
    */
-  generateContent(object) {
+  generateContent(object, retry = 5) {
     if (!object || typeof object != "object") {
       throw new Error("Please set object including question.");
     }
@@ -481,7 +484,7 @@ class GeminiWithFiles {
     }
     let check = true;
     const results = [];
-    let retry = 5;
+    // let retry = 5;
     const url = this.addQueryParameters_(this.urlGenerateContent, this.queryParameters);
     do {
       retry--;
@@ -518,7 +521,7 @@ class GeminiWithFiles {
         console.warn("Retry by the status code 500.");
         console.warn(res.getContentText());
         Utilities.sleep(3000);
-        this.generateContent({ q, jsonSchema, parts });
+        this.generateContent({ q, jsonSchema, parts }, retry);
       } else if (res.getResponseCode() != 200) {
         throw new Error(res.getContentText());
       }

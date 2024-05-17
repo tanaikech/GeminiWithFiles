@@ -175,6 +175,8 @@ The value of `object` is as follows.
 
 - When you want to use `systemInstruction`, please confirm the official document [Ref](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini).
 
+- In this library, as the default, the function calling is used. If you want to generate content without the function calling, please use `functions: {}` like `const g = GeminiWithFiles_test.geminiWithFiles({ apiKey, functions: {} });`. By this, the content is generated without the function calling.
+
 <a name="setfileIds"></a>
 
 ## setFileIds
@@ -1111,5 +1113,9 @@ I have already proposed the following future requests to the Google issue tracke
   1. For generating content, `parts` was added. From this version, you can select one of `q`, `jsonSchema`, and `parts`.
   2. From this version, `systemInstruction` can be used.
   3. In order to call the function call, `toolConfig` was added to the request body.
+
+- v1.0.3 (May 17, 2024)
+
+  1. Bugs were removed.
 
 [TOP](#top)
