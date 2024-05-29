@@ -177,6 +177,8 @@ The value of `object` is as follows.
 
 - In this library, as the default, the function calling is used. If you want to generate content without the function calling, please use `functions: {}` like `const g = GeminiWithFiles_test.geminiWithFiles({ apiKey, functions: {} });`. By this, the content is generated without the function calling.
 
+- Gemini 1.5 Pro Latest (`models/gemini-1.5-pro-latest`) is used as the default model. When you want to use Gemini 1.5 Flash Latest (`models/gemini-1.5-flash-latest`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-1.5-flash-latest" })`.
+
 <a name="setfileIds"></a>
 
 ## setFileIds
