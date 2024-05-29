@@ -241,9 +241,22 @@ class GeminiWithFiles {
    * @param {Array} fileList File list from the uploadFiles and getFileList method.
    * @returns {GeminiWithFiles}
    */
-  withUploadedFilesByGenerateContent(fileList = []) {
+  withUploadedFilesByGenerateContent(fileList = [], retry = 3) {
     if (fileList.length == 0) {
       throw new Error("Given fileList is empty.");
+    }
+    const checkState = fileList.filter(({ state }) => state == "PROCESSING");
+    if (checkState.length > 0) {
+      if (retry > 0) {
+        const dn = checkState.map(({ displayName }) => displayName)
+        console.warn(`Now, the state of the uploaded files "${dn.join(",")}" is not active. So, it will wait until it is active. Please wait for it. Retry (${4 - retry}/3)`);
+        const tempObj = fileList.reduce((o, { name }) => (o[name] = true, o), {});
+        const tempList = this.getFileList().filter(({ name }) => tempObj[name]);
+        Utilities.sleep(5000);
+        this.withUploadedFilesByGenerateContent(tempList, --retry);
+      } else {
+        console.warn("Although It waited for 15 seconds, the state of the uploaded files has not changed to active. In this case, please directly retrieve the metadata of the uploaded file after the state becomes active and generate content again.");
+      }
     }
     const obj = fileList.reduce((m, e) => {
       let k = "";
@@ -506,8 +519,15 @@ class GeminiWithFiles {
           contentType: "application/json",
           ...(this.queryParameters.key ? {} : { headers: this.headers }),
           muteHttpExceptions: true,
-        }, true);
-        console.log(res.getContentText());
+        }, false);
+        if (res.getResponseCode() != 200) {
+          console.error(res.getContentText());
+          if (files && files.length > 0) {
+            console.warn("In the current stage, when the uploaded files are used with countToken, an error like 'PERMISSION_DENIED'. So, at this time, the script is run as 'doCountToken: false'. I have already reported this. https://issuetracker.google.com/issues/343257597 I believe that this will be resolved in the future update.");
+          }
+        } else {
+          console.log(res.getContentText());
+        }
       }
       const res = this.fetch_({
         url,
@@ -519,6 +539,7 @@ class GeminiWithFiles {
       }, false);
       if (res.getResponseCode() == 500 && retry > 0) {
         console.warn("Retry by the status code 500.");
+        console.warn("If the error 500 is continued, please try 'const g = GeminiWithFiles_test.geminiWithFiles({ apiKey, functions: {} });' and 'const g = GeminiWithFiles_test.geminiWithFiles({ apiKey, esponse_mime_type: \"application/json\" });'.");
         console.warn(res.getContentText());
         Utilities.sleep(3000);
         this.generateContent({ q, jsonSchema, parts }, retry);

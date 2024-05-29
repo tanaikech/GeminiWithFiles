@@ -484,6 +484,7 @@ The sample scripts are as follows.
 - [Upload papers of PDF data and summarize them](#summarizepapers)
 - [Samples using response_mime_type](#samplesresponsemimetype)
 - [Sample using systemInstruction](#samplesysteminstruction)
+- [Generate content with a movie file](#generatecontentwithamoviefile)
 
 <a name="generatecontent"></a>
 
@@ -969,7 +970,7 @@ For 2nd question
 }
 ```
 
-### Sample 2
+### Sample 3
 
 ```javascript
 async function myFunction() {
@@ -1074,6 +1075,26 @@ function myFunction() {
 
 When this script is run, `[ 'Meow? What is Google Apps Script? Is it something I can chase? 😹' ]` is returned. You can see the value of `systemInstruction` is reflected in the generated content.
 
+<a name="generatecontentwithamoviefile"></a>
+
+## Generate content with a movie file
+
+```javascript
+async function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+  const fileIds = ["###"]; // Please set your movie file (MP4).
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, functions: {} });
+  const fileList = await g.setFileIds(fileIds).uploadFiles();
+  const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q: "Describe this video." });
+  console.log(res);
+}
+```
+
+- When this script is run, a MP4 video file is uploaded to Gemini and generate content with the uploaded video file.
+
+- **As an important point, in the current stage, the maximum upload size with UrlFetchApp of Google Apps Script is 50 MB. [Ref](https://developers.google.com/apps-script/guides/services/quotas#current_limitations) So, when you upload the video file, please use the file size less than 50 MB. Please be careful about this.**
+
 # IMPORTANT
 
 - If an error occurs, please try again after several minutes.
@@ -1133,5 +1154,10 @@ I have already proposed the following future requests to the Google issue tracke
 - v1.0.3 (May 17, 2024)
 
   1. Bugs were removed.
+
+- v1.0.4 (May 29, 2024)
+
+  1. Recently, when `model.countToken` is used with the uploaded files, I confirmed that an error like `You do not have permission to access the File ### or it may not exist.` occurred. In order to handle this issue, I modified the library.
+  2. In order to use the movie files for generateContent, I modified the library. [Ref](#generatecontentwithamoviefile)
 
 [TOP](#top)
