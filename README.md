@@ -1162,4 +1162,8 @@ I have already proposed the following future requests to the Google issue tracke
   1. Recently, when `model.countToken` is used with the uploaded files, I confirmed that an error like `You do not have permission to access the File ### or it may not exist.` occurred. In order to handle this issue, I modified the library.
   2. In order to use the movie files for generateContent, I modified the library. [Ref](#generatecontentwithamoviefile)
 
+- v1.0.5 (June 7, 2024)
+
+  1. Spelling mistakes in the warning message were modified. The wait time for changing the value of state for the movie file is changed from 5 seconds to 10 seconds per cycle.
+
 [TOP](#top)
