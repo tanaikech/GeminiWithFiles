@@ -113,7 +113,7 @@ If you use this library in your own Google Apps Script project, please copy and 
 
 "main.js" is used for the Google Apps Script library. So, in this pattern, you are not required to use it.
 
-In this case, please install another library [PDFApp](https://github.com/tanaikech/PDFApp). This is used for converting PDF data to image data. When an error like `ReferenceError: PDFApp is not defined` occurs, please check this.
+In this case, please copy and paste the script of [PDFApp](https://github.com/tanaikech/PDFApp/blob/master/PDFApp.js) into the same project. This is used for converting PDF data to image data. When an error like `ReferenceError: PDFApp is not defined` occurs, please check this.
 
 # Scopes
 
@@ -1165,5 +1165,9 @@ I have already proposed the following future requests to the Google issue tracke
 - v1.0.5 (June 7, 2024)
 
   1. Spelling mistakes in the warning message were modified. The wait time for changing the value of state for the movie file is changed from 5 seconds to 10 seconds per cycle.
+
+- v1.0.6 (June 15, 2024)
+
+  1. Included the script of PDFApp in this library.
 
 [TOP](#top)
