@@ -1168,6 +1168,6 @@ I have already proposed the following future requests to the Google issue tracke
 
 - v1.0.6 (June 15, 2024)
 
-  1. Included the script of PDFApp in this library.
+  1. Included the script of [PDFApp](https://github.com/tanaikech/PDFApp) in this library.
 
 [TOP](#top)

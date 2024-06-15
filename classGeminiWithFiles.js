@@ -291,7 +291,7 @@ class GeminiWithFiles {
   * @returns {Array} Array including blobs of the converted images.
   */
   async pdf2images_(fileId, blob, url) {
-    const images = await PDFApp.setPDFBlob(blob)
+    const images = await setPDFBlob(blob)
       .convertPDFToPng()
       .catch((err) => {
         throw new Error(err);
