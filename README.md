@@ -169,6 +169,7 @@ The value of `object` is as follows.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
 {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
+{Object} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
 ```
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
@@ -487,6 +488,7 @@ The sample scripts are as follows.
 - [Samples using response_mime_type](#samplesresponsemimetype)
 - [Sample using systemInstruction](#samplesysteminstruction)
 - [Generate content with a movie file](#generatecontentwithamoviefile)
+- [Export total tokens](#exporttotaltokens)
 
 <a name="generatecontent"></a>
 
@@ -1097,6 +1099,31 @@ async function myFunction() {
 
 - **As an important point, in the current stage, the maximum upload size with UrlFetchApp of Google Apps Script is 50 MB. [Ref](https://developers.google.com/apps-script/guides/services/quotas#current_limitations) So, when you upload the video file, please use the file size less than 50 MB. Please be careful about this.**
 
+<a name="exporttotaltokens"></a>
+
+## Export total tokens
+
+From v1.0.7, when `doCountToken: true` and `exportTotalTokens: true` are used in the object of the argument of `geminiWithFiles`, the total tokens are returned. In this case, the returned value is an object like `{returnValue: "###", totalTokens: ###}`. The sample script is as follows.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true, model: "models/gemini-1.5-pro-latest", functions: {}, exportTotalTokens: true });
+  const res = g.generateContent({ q: "What is Gemini?" });
+  console.log(res);
+}
+```
+
+When this script is run, the following result is returned.
+
+```json
+{
+  returnValue: '"Gemini" can refer to several things, so to give you the most accurate answer, I need more context.  What is it about "Gemini" that you want to know? \n\nHere are some possibilities:\n\n* **Gemini (astrology):**  This is the third astrological sign in the Zodiac, represented by twins. People born under this sign (roughly May 21 - June 21) are often described as adaptable, curious, and social.\n* **Gemini (cryptocurrency exchange):** Gemini is a popular platform for buying, selling, and storing cryptocurrencies like Bitcoin and Ethereum. \n* **Google Gemini:** This is a new family of multimodal AI models from Google,  designed to be even more capable than previous models.\n* **The Gemini spacecraft:** This was a NASA space program from the 1960s, focusing on two-person spacecraft for missions like spacewalks and rendezvous.\n* **Project Gemini:** This could refer to several different projects, so I\'d need more information to tell you which one you mean.\n\nPlease tell me more about what kind of "Gemini" you\'re interested in!',
+  totalTokens: 5
+}
+```
+
 # IMPORTANT
 
 - If an error occurs, please try again after several minutes.
@@ -1169,5 +1196,9 @@ I have already proposed the following future requests to the Google issue tracke
 - v1.0.6 (June 15, 2024)
 
   1. Included the script of [PDFApp](https://github.com/tanaikech/PDFApp) in this library.
+
+- v1.0.7 (July 4, 2024)
+
+  1. From this version, when `doCountToken: true` and `exportTotalTokens: true` are used in the object of the argument of `geminiWithFiles`, the total tokens are returned. In this case, the returned value is an object like `{returnValue: "###", totalTokens: ###}`.
 
 [TOP](#top)

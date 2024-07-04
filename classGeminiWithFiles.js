@@ -19,9 +19,10 @@ class GeminiWithFiles {
    * @param {Array} object.functions If you want to give the custom functions, please use this.
    * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
    * @param {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
+   * @param {Object} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, systemInstruction } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, systemInstruction, exportTotalTokens } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-pro-latest";
@@ -48,6 +49,12 @@ class GeminiWithFiles {
 
     /** @private */
     this.doCountToken = doCountToken || false;
+
+    /** @private */
+    this.exportTotalTokens = exportTotalTokens || false;
+
+    /** @private */
+    this.totalTokens = 0;
 
     /** @private */
     this.queryParameters = {};
@@ -531,6 +538,10 @@ class GeminiWithFiles {
           }
 
         } else {
+          if (this.exportTotalTokens) {
+            const objTotalTokens = JSON.parse(res.getContentText());
+            this.totalTokens = objTotalTokens.totalTokens;
+          }
           console.log(res.getContentText());
         }
       }
@@ -602,9 +613,15 @@ class GeminiWithFiles {
     }
     const returnValue = output.text.trim();
     try {
+      if (this.exportTotalTokens) {
+        return { returnValue: JSON.parse(returnValue), totalTokens: this.totalTokens };
+      }
       return JSON.parse(returnValue);
     } catch (stack) {
       // console.warn(stack);
+      if (this.exportTotalTokens) {
+        return { returnValue, totalTokens: this.totalTokens };
+      }
       return returnValue;
     }
   }
