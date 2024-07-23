@@ -489,6 +489,7 @@ The sample scripts are as follows.
 - [Sample using systemInstruction](#samplesysteminstruction)
 - [Generate content with a movie file](#generatecontentwithamoviefile)
 - [Export total tokens](#exporttotaltokens)
+- [Use large file (over 50 MB)](#useover50mbdata)
 
 <a name="generatecontent"></a>
 
@@ -1124,6 +1125,12 @@ When this script is run, the following result is returned.
 }
 ```
 
+<a name="useover50mbdata"></a>
+
+## Use large file (over 50 MB)
+
+In this case, the data is required to upload with the resumable upload. You can see the sample script in the "Appendix" section of [Uploading Large Files to Gemini with Google Apps Script: Overcoming 50 MB Limit](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
+
 # IMPORTANT
 
 - If an error occurs, please try again after several minutes.
@@ -1138,6 +1145,7 @@ When this script is run, the following result is returned.
 I have already proposed the following future requests to the Google issue tracker. [Ref](https://issuetracker.google.com/issues/336842930)
 
 - I think it would be even more beneficial for users of Gemini if files on Google Drive could be directly used by the Gemini API using just their file IDs. This would also significantly reduce the cost of uploading data.
+
 - I think that the ability to include custom metadata with uploaded files would be very useful for managing large numbers of files.
 
 # Note
