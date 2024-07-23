@@ -210,6 +210,7 @@ async function myFunction() {
 
 - The 1st and 2nd arguments of `setFileIds` are String[] (the file IDs on Google Drive) and the boolean, respectively. If the 2nd argument is false, the inputted files of file IDs are uploaded as raw data. If the 2nd argument is true, the inputted files of file IDs are converted to image data and are uploaded.
 - In the current stage (April 26, 2024), the generateContent of Gemini API cannot directly process PDF data. So, as the current workaround, PDF data can be processed by converting to image data. At that time, this argument is used as `true`.
+	- On July 23, 2024, I confirmed that PDF data can be directly used with Gemini API. So, in the current stage, when you use PDF data, you can use `false` at this method like `setFileIds(fileIds, false)`.
 
 <a name="setblobs"></a>
 
@@ -236,7 +237,8 @@ async function myFunction() {
 }
 ```
 
-- The 1st and 2nd arguments of `setBlobs` are Blob[] and boolean, respectively. The default value of 2nd argument is false. If this is true, when the blob is PDF data, each page is converted to image data.
+- The 1st and 2nd arguments of `setBlobs` are Blob[] and boolean, respectively. The default value of 2nd argument is `false`. If this is true, when the blob is PDF data, each page is converted to image data.
+	- On July 23, 2024, I confirmed that PDF data can be directly used with Gemini API. So, in the current stage, when you use PDF data, you can use `false` at this method like `setBlobs(blobs, false)`.
 - By the future update, when the PDF data can be directly processed, it is considered that this value can be always used as false for PDF data.
 
 <a name="withuploadedfilesbygeneratecontent"></a>
