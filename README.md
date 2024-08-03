@@ -1430,7 +1430,7 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. From this version, when `doCountToken: true` and `exportTotalTokens: true` are used in the object of the argument of `geminiWithFiles`, the total tokens are returned. In this case, the returned value is an object like `{returnValue: "###", totalTokens: ###}`.
 
-- v2.0.0 (August 5, 2024)
+- v2.0.0 (August 3, 2024)
 
   1. From this version, the following changes were made.
     - PDF data can be directly used. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4) By this, PDFApp is not required to be used. By this, the script can be used without async/await.
