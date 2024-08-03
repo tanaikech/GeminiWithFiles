@@ -3,11 +3,6 @@
 <a name="top"></a>
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE)
 
-# IMPORTANT
-Gemini API is continuing to grow. On August 5, 2024, I largely updated GeminiWithFiles to v2.x.x. With this large update, the version is changed from v1 to v2.
-
-If you want to use GeminiWithFiles v1.x.x, please see [here](old_v1.x.x/README.md).
-
 <a name="overview"></a>
 
 ![](images/fig1.jpg)
@@ -24,7 +19,7 @@ Recently, Gemini, a large language model from Google AI, has brought new possibi
 
 Gemini 1.5 API, released recently, significantly expands these capabilities. It can generate content by up to 1 million tokens, a substantial increase compared to previous versions. Additionally, Gemini 1.5 can now process up to 3,000 image files, vastly exceeding the 16-image limit of Gemini 1.0. [Ref](https://ai.google.dev/gemini-api/docs/prompting_with_media?hl=en#supported_file_formats)
 
-While Gemini cannot directly work with Google Drive formats like Docs, Sheets, and Slides, there are workarounds. In the current stage, PDF data can be directly processed with Gemini API. Using this, those Google Docs files are converted to PDF and used with Gemini API. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
+While Gemini cannot directly work with Google Drive formats like Docs, Sheets, Slides, or PDFs yet, there are workarounds. In a previous report, I demonstrated a method for converting PDF data into images that Gemini can then process for tasks like invoice parsing. [Ref](https://medium.com/google-cloud/parsing-invoices-using-gemini-1-5-api-with-google-apps-script-1f32af1678f2)
 
 This report introduces a new Google Apps Script library called "GeminiWithFiles" that simplifies this process. GeminiWithFiles allows users to easily upload files and generate content using Gemini's powerful capabilities. It also enables efficient description creation from multiple images with a single API call, significantly reducing the workload compared to processing each image individually as demonstrated in my prior report. [Ref](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)
 
@@ -56,7 +51,7 @@ File Management:
 
 Content Upload:
 
-- Upload various file formats including Google Docs (Documents, Spreadsheets, Slides), and PDFs. In the current stage, PDF data can be directly used. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
+- Upload various file formats including Google Docs (Documents, Spreadsheets, Slides), and PDFs. Gemini will convert each page of the uploaded file into images for further processing.
 
 Chat History Management:
 
@@ -110,11 +105,15 @@ If you use this library as a Google Apps Script library, please install the libr
 1dolXnIeXKz-BH1BlwRDaKhzC2smJcGyVxMxGYhaY2kqiLa857odLXrIC
 ```
 
+This library uses another library [PDFApp](https://github.com/tanaikech/PDFApp). This is used for converting PDF data to image data. PDFApp has already been installed in this library. So, you are not required to operate about this.
+
 ### 2. Use GeminiWithFiles in your own Google Apps Script project
 
 If you use this library in your own Google Apps Script project, please copy and paste the script ["classGeminiWithFiles.js"](https://github.com/tanaikech/GeminiWithFiles/blob/master/classGeminiWithFiles.js) into your Google Apps Script project. By this, the script can be used.
 
 "main.js" is used for the Google Apps Script library. So, in this pattern, you are not required to use it.
+
+In this case, please copy and paste the script of [PDFApp](https://github.com/tanaikech/PDFApp/blob/master/PDFApp.js) into the same project. This is used for converting PDF data to image data. When an error like `ReferenceError: PDFApp is not defined` occurs, please check this.
 
 # Scopes
 
@@ -134,13 +133,12 @@ Also, you can see the official document of Gemini API at [https://ai.google.dev/
 | Methods                                                                                  | Description                                         |
 | :--------------------------------------------------------------------------------------- | :-------------------------------------------------- |
 | [setFileIds(fileIds, asImage = false)](#setfileIds)                                      | Set file IDs.                                       |
-| [setBlobs(blobs)](#setblobs)                                         | Set blobs.                                          |
+| [setBlobs(blobs, pdfAsImage = false)](#setblobs)                                         | Set blobs.                                          |
 | [withUploadedFilesByGenerateContent(fileList = [])](#withuploadedfilesbygeneratecontent) | Create object for using the generateContent method. |
 | [uploadFiles(n = 50)](#uploadfiles)                                                      | Upload files to Gemini.                             |
 | [getFileList()](#getfilelist)                                                            | Get file list in Gemini.                            |
 | [deleteFiles(names, n = 50)](#deletefiles)                                               | Delete files from Gemini.                           |
 | [generateContent(object)](#generatecontent)                                              | Main method. Generate content by Gemini API.        |
-| [setFileIdsOrUrlsWithResumableUpload(object)](#setfileidsorurlsWithresumableupload) | File over 50 MB can be uploaded to Gemini. |
 
 ## Constructor
 
@@ -171,15 +169,16 @@ The value of `object` is as follows.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
 {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
-{Boolean} object.exportTotalTokens When this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
-{Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
+{Object} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
 ```
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
 
 - When you want to use `systemInstruction`, please confirm the official document [Ref](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini).
 
-- Gemini 1.5 Flash Latest (`models/gemini-1.5-flash-latest`) is used as the default model. When you want to use Gemini 1.5 Pro Latest (`models/gemini-1.5-pro-latest`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-1.5-pro-latest" })`.
+- In this library, as the default, the function calling is used. If you want to generate content without the function calling, please use `functions: {}` like `const g = GeminiWithFiles_test.geminiWithFiles({ apiKey, functions: {} });`. By this, the content is generated without the function calling.
+
+- Gemini 1.5 Pro Latest (`models/gemini-1.5-pro-latest`) is used as the default model. When you want to use Gemini 1.5 Flash Latest (`models/gemini-1.5-flash-latest`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-1.5-flash-latest" })`.
 
 <a name="setfileIds"></a>
 
@@ -190,7 +189,7 @@ Set file IDs. The files of file IDs are uploaded to Gemini.
 In this case, async/await is used in the function.
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const folderId = "###"; // Please set your folder ID including images.
 
@@ -204,13 +203,14 @@ function myFunction() {
   const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
-  const res = g.setFileIds(fileIds, false).uploadFiles();
+  const res = await g.setFileIds(fileIds, true).uploadFiles();
   console.log(res);
 }
 ```
 
-- The 1st and 2nd arguments of `setFileIds` are String[] (the file IDs on Google Drive) and the boolean, respectively. If the 2nd argument is false, the inputted files of file IDs are uploaded as raw data. If the 2nd argument is true, the inputted files of file IDs are converted to image data and are uploaded. The default of 2nd argument is false.
-- After July 23, 2024, PDF data can be directly used with Gemini API. So, in the current stage, when you use PDF data, you can use `false` at this method like `setFileIds(fileIds, false)`.
+- The 1st and 2nd arguments of `setFileIds` are String[] (the file IDs on Google Drive) and the boolean, respectively. If the 2nd argument is false, the inputted files of file IDs are uploaded as raw data. If the 2nd argument is true, the inputted files of file IDs are converted to image data and are uploaded.
+- In the current stage (April 26, 2024), the generateContent of Gemini API cannot directly process PDF data. So, as the current workaround, PDF data can be processed by converting to image data. At that time, this argument is used as `true`.
+	- On July 23, 2024, I confirmed that PDF data can be directly used with Gemini API. So, in the current stage, when you use PDF data, you can use `false` at this method like `setFileIds(fileIds, false)`.
 
 <a name="setblobs"></a>
 
@@ -219,7 +219,7 @@ function myFunction() {
 Set blobs. The blobs are uploaded to Gemini.
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const folderId = "###"; // Please set your folder ID including images.
 
@@ -232,13 +232,14 @@ function myFunction() {
   const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
-  const res = g.setBlobs(blobs).uploadFiles();
+  const res = await g.setBlobs(blobs, false).uploadFiles();
   console.log(res);
 }
 ```
 
-- The 1st argument of `setBlobs` is Blob[].
-- In this method, the data conversion cannot be used.
+- The 1st and 2nd arguments of `setBlobs` are Blob[] and boolean, respectively. The default value of 2nd argument is `false`. If this is true, when the blob is PDF data, each page is converted to image data.
+	- On July 23, 2024, I confirmed that PDF data can be directly used with Gemini API. So, in the current stage, when you use PDF data, you can use `false` at this method like `setBlobs(blobs, false)`.
+- By the future update, when the PDF data can be directly processed, it is considered that this value can be always used as false for PDF data.
 
 <a name="withuploadedfilesbygeneratecontent"></a>
 
@@ -272,35 +273,19 @@ function myFunction() {
 Upload files to Gemini. The files are uploaded to Gemini using the inputted file IDs or blobs.
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const fileIds = ["###fileId1###", "###fileId2###", , ,]; // Please set your file IDs in this array.
 
   const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
-  const res = g.setFileIds(fileIds, false).uploadFiles();
+  const res = await g.setFileIds(fileIds, false).uploadFiles();
   console.log(res);
 }
 ```
 
 In this script, the files of `fileIds` are uploaded to Gemini with the raw data. If `setFileIds(fileIds, false)` is modified to `setFileIds(fileIds, true)`, the files are uploaded to Gemini as images.
-
-When you directly use Blob, you can use the following script.
-
-```javascript
-function myFunction() {
-  const apiKey = "###"; // Please set your API key.
-  const fileIds = ["###fileId1###", "###fileId2###", , ,]; // Please set your file IDs in this array.
-
-  const blobs = fileIds.map(id => DriveApp.getFileById(id).getBlob());
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const res = g.setBlobs(blobs).uploadFiles();
-  console.log(res);
-}
-```
 
 <a name="getfilelist"></a>
 
@@ -361,7 +346,21 @@ function myFunction() {
 }
 ```
 
-In this script, the content is generated with the function calling.
+In this script, the content is generated with the function calling. If you want to simply generate content without the function calling, please use the following script.
+
+**If an error like `"code": 500, "message": "An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting", "status": "INTERNAL"` occurs, please test `functions: {}` as follows.**
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, functions: {} }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, functions: {} }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const res = g.generateContent({ q: "What is Google Apps Script?" });
+  console.log(res);
+}
+```
 
 When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method as follows. In this case, by giving only JSON schema, this library can return a valid object. You can also see the detailed information about `response_mime_type` at [my report](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85).
 
@@ -406,112 +405,6 @@ When this script is run, the following result is obtained.
 ]
 ```
 
-<a name="setfileidsorurlsWithresumableupload"></a>
-
-## setFileIdsOrUrlsWithResumableUpload
-
-This method can upload files over 50 MB.
-
-From v2.x.x, this can be achieved. This is from [Ref](https://github.com/tanaikech/UploadApp) and [Ref](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
-
-The sample script is as follows.
-
-```javascript
-function myFunction() {
-  // This URL is from https://github.com/google/generative-ai-docs/blob/main/site/en/gemini-api/docs/prompting_with_media.ipynb
-  const url = "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"; // 64,657,027 bytes
-
-
-  const apiKey = "###"; // Please set your API key.
-  const q = "Description this video.";
-
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const fileList = g.setFileIdsOrUrlsWithResumableUpload([{ url }]).uploadFiles();
-
-  Utilities.sleep(10000); // This might be required to be used because the state of the uploaded file might not be active.
-
-  const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q });
-  console.log(res);
-}
-```
-
-When this script is run, the following log can be seen at the log.
-
-```
-- Get metadata
-- Calculate chunks
-- Get location
-- Download and upload data.
-- Now... 1/4
-- Start downloading data with 0-16777215
-- Finished downloading data with 0-16777215
-- Start uploading data with 0-16777215
-- Finished uploading data with 0-16777215
-- Upload the next chunk.
-- Now... 2/4
-- Start downloading data with 16777216-33554431
-- Finished downloading data with 16777216-33554431
-- Start uploading data with 16777216-33554431
-- Finished uploading data with 16777216-33554431
-- Upload the next chunk.
-- Now... 3/4
-- Start downloading data with 33554432-50331647
-- Finished downloading data with 33554432-50331647
-- Start uploading data with 33554432-50331647
-- Finished uploading data with 33554432-50331647
-- Upload the next chunk.
-- Now... 4/4
-- Start downloading data with 50331648-64657026
-- Finished downloading data with 50331648-64657026
-- Start uploading data with 50331648-64657026
-- Finished uploading data with 50331648-64657026
-- Done.
-- Now, the state of the uploaded files "url@https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4$page@1$maxPage@1" is not active. So, it will wait until it is active. Please wait for 10 seconds. Retry (1/3)
-- 1 uploaded files are used with generateCotent.
-- The video is a cartoon that shows a large, white rabbit in a field. The rabbit is shown waking up from a nap and then is seen eating an apple. After eating the apple, the rabbit is approached by a bird. The rabbit is scared of the bird and tries to hide from it. The bird flies away. The rabbit is seen smiling and then a squirrel flies toward the rabbit. The squirrel is startled by the rabbit and flies away. The rabbit is then seen catching another squirrel with its vine and the scene ends with a close-up of the rabbit's face.
-```
-
-If your file is large and the state of uploaded file has not still been "ACTIVE", please test the following script.
-
-```javascript
-function myFunction() {
-  // This URL is from https://github.com/google/generative-ai-docs/blob/main/site/en/gemini-api/docs/prompting_with_media.ipynb
-  const url = "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"; // 64,657,027 bytes
-
-
-  const apiKey = "###"; // Please set your API key.
-  const q = "Description this video.";
-
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const fileList = g.setFileIdsOrUrlsWithResumableUpload([{ url }]).uploadFiles();
-  console.log(JSON.stringify(fileList));
-  
-  // Please copy the value of "fileList".
-
-}
-```
-
-By this, the file can be uploaded. And, you can use the uploaded file after it waits enough time to change the state to "ACTIVE". The uploaded file can be used as follows.
-
-```javascript
-function myFunction() {
-  const fileList = [###]; // This is from the above script.
-  
-  const apiKey = "###"; // Please set your API key.
-  const q = "Description this video.";
-
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q });
-  console.log(res);
-}
-```
-
 ### Use custom parts
 
 When `q` is used, only text question can be used for generating content. When you want to use your custom parts, you can do it as follows.
@@ -530,98 +423,6 @@ function myFunction() {
   const res = g.generateContent({ parts });
   console.log(res);
 }
-```
-
-### Use function calling
-When you want to use the function calling, you can use the following sample script.
-
-```javascript
-function myFunction_functionCalling() {
-  const apiKey = "###"; // Please set your API key.
-
-  // Sample functions
-  const functions = {
-    params_: {
-      getTanaike: {
-        description: "Get information about Tanaike. Value is a text.",
-      },
-    },
-    getTanaike: (
-      _ // ref: https://tanaikech.github.io/about/
-    ) =>
-      "As a Japanese scientist holding a Ph.D. in Physics, I am also a Google Developer Expert (GDE) in Google Workspace and a Google Cloud Champion Innovator. I am driven by a deep curiosity to explore, think creatively, and ultimately create new things. Specifically, I have a passion for crafting innovative solutions that are entirely novel, solutions that haven't yet been introduced to the world. It's in this spirit that I approach innovation. Interestingly, these new ideas often come to me during sleep, which I then strive to bring to life in the real world. Thankfully, some of these have already found practical applications.",
-  };
-
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey, functions }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey, response_mime_type: "application/json" }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const res = g.generateContent({ q: "What is Tanaike? Return answer within 50 words." });
-  console.log(res);
-}
-```
-
-This sample function is from [this post](https://medium.com/google-cloud/guide-to-function-calling-with-gemini-and-google-apps-script-0e058d472f45).
-
-### Return raw data
-
-When you want to return the raw data from Gemini API, you can also use the following sample script.
-
-```javascript
-function myFunction_generateContent1b() {
-  const apiKey = "###"; // Please set your API key.
-
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey, exportRawData: true }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-
-  const res1 = g.generateContent({ q: "What is Google Apps Script?" });
-  console.log(JSON.stringify(res1));
-}
-```
-
-By using `exportRawData: true`, you can retrieve the raw data from Gemini API as follows.
-
-```json
-[
-   {
-      "candidates":[
-         {
-            "content":{
-               "parts":[
-                  {
-                     "text":"Google Apps Script is ..."
-                  }
-               ],
-               "role":"model"
-            },
-            "finishReason":"STOP",
-            "index":0,
-            "safetyRatings":[
-               {
-                  "category":"HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability":"NEGLIGIBLE"
-               },
-               {
-                  "category":"HARM_CATEGORY_HATE_SPEECH",
-                  "probability":"NEGLIGIBLE"
-               },
-               {
-                  "category":"HARM_CATEGORY_HARASSMENT",
-                  "probability":"NEGLIGIBLE"
-               },
-               {
-                  "category":"HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability":"NEGLIGIBLE"
-               }
-            ]
-         }
-      ],
-      "usageMetadata":{
-         "promptTokenCount":7,
-         "candidatesTokenCount":459,
-         "totalTokenCount":466
-      }
-   }
-]
 ```
 
 ## Additional information
@@ -820,7 +621,7 @@ When this script is run, the following values can be seen in the log. By `doCoun
 In this case, async/await is used in the function.
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const folderId = "###"; // Please set your folder ID including images.
 
@@ -832,7 +633,7 @@ function myFunction() {
   }
   const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-  const res = g.setFileIds(fileIds, false).uploadFiles();
+  const res = await g.setFileIds(fileIds, false).uploadFiles();
   console.log(res);
 }
 ```
@@ -847,7 +648,7 @@ function myFunction() {
 In this sample, multiple image files are uploaded and the descriptions are created from the uploaded image files. This sample will be the expanded version of my previous report "[Automatically Creating Descriptions of Files on Google Drive using Gemini Pro API with Google Apps Script](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)".
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const folderId = "###"; // Please set your folder ID including images.
 
@@ -873,15 +674,13 @@ function myFunction() {
     fileIds.push(files.next().getId());
   }
   if (fileIds.length == 0) return;
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true, response_mime_type: "application/json" }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey, doCountToken: true, response_mime_type: "application/json" }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-  const fileList = g.setFileIds(fileIds).uploadFiles();
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+  const fileList = await g.setFileIds(fileIds).uploadFiles();
   const res = g
     .withUploadedFilesByGenerateContent(fileList)
     .generateContent({ q });
-
   // g.deleteFiles(fileList.map(({ name }) => name)); // If you want to delete the uploaded files, please use this.
-
   console.log(res);
 }
 ```
@@ -915,17 +714,11 @@ As an important point, in my test, when the number of image files is large, it w
 In this sample, multiple invoices of PDF files are uploaded and they are parsed as an object. This sample will be the expanded version of my previous report "[Parsing Invoices using Gemini 1.5 API with Google Apps Script](https://medium.com/google-cloud/parsing-invoices-using-gemini-1-5-api-with-google-apps-script-1f32af1678f2)".
 
 ```javascript
-function myFunction_parseInvoices() {
+async function myFunction_parseInvoices() {
   const apiKey = "###"; // Please set your API key.
 
-  // Please set file IDs of PDF file of invoices on Google Drive.
-  const fileIds = [
-    "###fileID1###",
-    "###fileID2###",
-    ,
-    ,
-    ,
-  ];
+  // Please set file IDs of PDF files of invoices.
+  const fileIds = ["###fileID1###", "###fileID2###"];
 
   const q = [
     `Create an array including JSON object parsed the following images of the invoices.`,
@@ -951,13 +744,13 @@ function myFunction_parseInvoices() {
     `Return only raw array including JSON objects without markdown. No markdown format. No markcodn tags.`,
   ].join("\n");
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true, response_mime_type: "application/json" }); // This is for installing GeminiWithFiles as a library.
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-  const fileList = g.setFileIds(fileIds).uploadFiles();
-  const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q });
-
+  const fileList = await g.setFileIds(fileIds, true).uploadFiles();
+  const res = g
+    .withUploadedFilesByGenerateContent(fileList)
+    .generateContent({ q });
   // g.deleteFiles(fileList.map(({ name }) => name)); // If you want to delete the uploaded files, please use this.
-
   console.log(res);
 }
 ```
@@ -972,7 +765,7 @@ As the sample papers, when the following papers are used,
 
 ![](images/fig4.png)
 
-the following result was obtained by one API call. It is found that the uploaded invoices of PDF data can be correctly parsed.
+the following result was obtained by one API call. It is found that the uploaded invoices converted from PDF data to image data can be correctly parsed.
 
 ```json
 [
@@ -1023,7 +816,7 @@ the following result was obtained by one API call. It is found that the uploaded
 In this sample, multiple papers of PDF data are uploaded, and the summarized texts for each paper are output.
 
 ```javascript
-function myFunction_parsePapers() {
+async function myFunction_parsePapers() {
   const apiKey = "###"; // Please set your API key.
 
   // Please set file IDs of the papers of PDF files.
@@ -1046,13 +839,11 @@ function myFunction_parsePapers() {
 
   const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-  const fileList = g.setFileIds(fileIds).uploadFiles();
+  const fileList = await g.setFileIds(fileIds, true).uploadFiles();
   const res = g
     .withUploadedFilesByGenerateContent(fileList)
     .generateContent({ q });
-
   // g.deleteFiles(fileList.map(({ name }) => name)); // If you want to delete the uploaded files, please use this.
-
   console.log(res);
 }
 ```
@@ -1189,7 +980,7 @@ For 2nd question
 ### Sample 3
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
 
   // Please set file IDs of PDF file of invoices.
@@ -1258,13 +1049,11 @@ function myFunction() {
     response_mime_type: "application/json",
   }); // This is for installing GeminiWithFiles as a library.
   // const g = new GeminiWithFiles({ apiKey, doCountToken: true, response_mime_type: "application/json" }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
-  const fileList = g.setFileIds(fileIds, true).uploadFiles();
+  const fileList = await g.setFileIds(fileIds, true).uploadFiles();
   const res = g
     .withUploadedFilesByGenerateContent(fileList)
     .generateContent({ jsonSchema });
-
   // g.deleteFiles(fileList.map(({ name }) => name)); // If you want to delete the uploaded files, please use this.
-
   console.log(JSON.stringify(res));
 }
 ```
@@ -1298,12 +1087,12 @@ When this script is run, `[ 'Meow? What is Google Apps Script? Is it something I
 ## Generate content with a movie file
 
 ```javascript
-function myFunction() {
+async function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const fileIds = ["###"]; // Please set your movie file (MP4).
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey });
-  const fileList = g.setFileIds(fileIds).uploadFiles();
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, functions: {} });
+  const fileList = await g.setFileIds(fileIds).uploadFiles();
   const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q: "Describe this video." });
   console.log(res);
 }
@@ -1312,7 +1101,6 @@ function myFunction() {
 - When this script is run, a MP4 video file is uploaded to Gemini and generate content with the uploaded video file.
 
 - **As an important point, in the current stage, the maximum upload size with UrlFetchApp of Google Apps Script is 50 MB. [Ref](https://developers.google.com/apps-script/guides/services/quotas#current_limitations) So, when you upload the video file, please use the file size less than 50 MB. Please be careful about this.**
-	- When you want to upload such the large filie, please check [this post](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
 
 <a name="exporttotaltokens"></a>
 
@@ -1324,7 +1112,7 @@ From v1.0.7, when `doCountToken: true` and `exportTotalTokens: true` are used in
 function myFunction() {
   const apiKey = "###"; // Please set your API key.
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey, exportTotalTokens: true });
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, doCountToken: true, model: "models/gemini-1.5-pro-latest", functions: {}, exportTotalTokens: true });
   const res = g.generateContent({ q: "What is Gemini?" });
   console.log(res);
 }
@@ -1334,12 +1122,8 @@ When this script is run, the following result is returned.
 
 ```json
 {
-   "returnValue":"\"Gemini\" can refer to several things, so please provide me with more context. For example, are you asking about:\n\n* **Gemini (constellation):** A constellation in the Northern Hemisphere, known for its distinctive twin stars, Castor and Pollux.\n* **Gemini (astrological sign):** The third sign of the Zodiac, associated with those born between May 21st and June 20th.\n* **Gemini (programming language):** A procedural programming language created by Niklaus Wirth, known for its simplicity and emphasis on structured programming.\n* **Gemini (Google AI model):** A large language model developed by Google, known for its advanced conversational abilities and ability to generate different creative text formats.\n* **Gemini (NASA mission):** A crewed spaceflight mission to the Moon, planned for 2024.\n\nOnce you tell me what kind of Gemini you're interested in, I can give you a more specific answer!",
-   "usageMetadata":{
-      "promptTokenCount":5,
-      "candidatesTokenCount":200,
-      "totalTokenCount":205
-   }
+  returnValue: '"Gemini" can refer to several things, so to give you the most accurate answer, I need more context.  What is it about "Gemini" that you want to know? \n\nHere are some possibilities:\n\n* **Gemini (astrology):**  This is the third astrological sign in the Zodiac, represented by twins. People born under this sign (roughly May 21 - June 21) are often described as adaptable, curious, and social.\n* **Gemini (cryptocurrency exchange):** Gemini is a popular platform for buying, selling, and storing cryptocurrencies like Bitcoin and Ethereum. \n* **Google Gemini:** This is a new family of multimodal AI models from Google,  designed to be even more capable than previous models.\n* **The Gemini spacecraft:** This was a NASA space program from the 1960s, focusing on two-person spacecraft for missions like spacewalks and rendezvous.\n* **Project Gemini:** This could refer to several different projects, so I\'d need more information to tell you which one you mean.\n\nPlease tell me more about what kind of "Gemini" you\'re interested in!',
+  totalTokens: 5
 }
 ```
 
@@ -1347,16 +1131,13 @@ When this script is run, the following result is returned.
 
 ## Use large file (over 50 MB)
 
-From v2.x.x, this can be achieved. This is from [Ref](https://github.com/tanaikech/UploadApp) and [Ref](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
-
-The sample script can be seen at [here](#setfileidsorurlsWithresumableupload).
+In this case, the data is required to upload with the resumable upload. You can see the sample script in the "Appendix" section of [Uploading Large Files to Gemini with Google Apps Script: Overcoming 50 MB Limit](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
 
 # IMPORTANT
 
 - If an error occurs, please try again after several minutes.
 - In generative AI, the output is highly dependent on the input prompt (the question you provide). Therefore, if the generated text doesn't meet your expectations, try reformulating your prompt and try again.
 - On April 26, 2024, the following mimeTypes can be used with generateContent. [Ref](https://ai.google.dev/gemini-api/docs/prompting_with_media?hl=en#supported_file_formats) I believe that this will be expanded in the future update. For example, I believe that PDF data can be directly used with generateContent in the future.
-	- This has been achieved. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
 - Images: `image/png,image/jpeg,image/webp,image/heic,image/heif`
 - Videos: `audio/wav,audio/mp3,audio/aiff,audio/aac,audio/ogg,audio/flac`
 - In my test, when the files are uploaded using this script, I confirmed that 100 files can be always uploaded. But, when the number of files is more than 100, an error of `Exceeded maximum execution time` sometimes occurs. Please be careful about this.
@@ -1429,14 +1210,5 @@ I have already proposed the following future requests to the Google issue tracke
 - v1.0.7 (July 4, 2024)
 
   1. From this version, when `doCountToken: true` and `exportTotalTokens: true` are used in the object of the argument of `geminiWithFiles`, the total tokens are returned. In this case, the returned value is an object like `{returnValue: "###", totalTokens: ###}`.
-
-- v2.0.0 (August 5, 2024)
-
-  1. From this version, the following changes were made.
-    - PDF data can be directly used. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4) By this, PDFApp is not required to be used. By this, the script can be used without async/await.
-    - As the default, `functions: {}` is used. So, the default function calling was removed. Because in the current stage, JSON output can be easily returned using a JSON schema and `response_mime_type`. [Ref](https://medium.com/google-cloud/gemini-api-with-json-schema-3dbdabac7d19) [Ref](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
-    - The default model was changed from `models/gemini-1.5-pro-latest` to `models/gemini-1.5-flash-latest`.
-    - The export values with `exportTotalTokens` were changed. After v2.x.x, when this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
-    - After v2.x.x, the large files can be uploaded to Gemini. This is from [this respository](https://github.com/tanaikech/UploadApp) and [this post](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
 
 [TOP](#top)

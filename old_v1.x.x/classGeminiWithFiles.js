@@ -18,16 +18,14 @@ class GeminiWithFiles {
    * @param {Array} object.history History for continuing chat.
    * @param {Array} object.functions If you want to give the custom functions, please use this.
    * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
-   * @param {String} object.responseMimeType In the current stage, only "application/json" can be used.
    * @param {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
-   * @param {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
-   * @param {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
+   * @param {Object} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, systemInstruction, exportTotalTokens, exportRawData } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, systemInstruction, exportTotalTokens } = object;
 
     /** @private */
-    this.model = model || "models/gemini-1.5-flash-latest"; // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
+    this.model = model || "models/gemini-1.5-pro-latest";
 
     /** @private */
     this.version = version || "v1beta";
@@ -56,9 +54,6 @@ class GeminiWithFiles {
     this.exportTotalTokens = exportTotalTokens || false;
 
     /** @private */
-    this.exportRawData = exportRawData || false;
-
-    /** @private */
     this.totalTokens = 0;
 
     /** @private */
@@ -80,10 +75,10 @@ class GeminiWithFiles {
     this.asImage = false;
 
     /** @private */
-    this.blobs = [];
+    this.pdfAsImage = false;
 
     /** @private */
-    this.resumableUplaods = [];
+    this.blobs = [];
 
     /** @private */
     this.fileList = [];
@@ -94,13 +89,108 @@ class GeminiWithFiles {
     /** @private */
     this.systemInstruction = systemInstruction || null;
 
-    this.functions = {};
-
-    if ((response_mime_type && response_mime_type != "") || (responseMimeType && responseMimeType != "")) {
+    /**
+     * Functions for function calling of Gemini API. You can see the default functions as follows. You can create the value of functions by confirming the default values.
+     * 
+     * ```
+     * console.log(new GeminiWithFiles().functions);
+     * ```
+     * 
+     * @type {Object}
+     */
+    this.functions = {
+      params_: {
+        customType_string: {
+          description:
+            "Output type is string type. When the output type is string type, this is used. No descriptions and explanations.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "STRING",
+                description:
+                  "Output type is string type. When the output type is string type, this is used. No descriptions and explanations.",
+              },
+            },
+            required: ["items"],
+          },
+        },
+        customType_number: {
+          description:
+            "Output type is number type. When the output type is number type, this is used. No descriptions and explanations.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "NUMBER",
+                description:
+                  "Output type is number type. When the output type is number type, this is used. No descriptions and explanations.",
+              },
+            },
+            required: ["items"],
+          },
+        },
+        customType_boolean: {
+          description:
+            "Output type is boolean type. When the output type is boolean type, this is used. No descriptions and explanations.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "BOOLEAN",
+                description:
+                  "Output type is boolean type. When the output type is boolean type, this is used. No descriptions and explanations.",
+              },
+            },
+            required: ["items"],
+          },
+        },
+        customType_array: {
+          description:
+            "Output type is array type. When the output type is array type, this is used. No descriptions and explanations.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "ARRAY",
+                description:
+                  "Output type is array type. When the output type is array type, this is used. No descriptions and explanations.",
+              },
+            },
+            required: ["items"],
+          },
+        },
+        customType_object: {
+          description:
+            "Output type is JSON object type. When the output type is object type, this is used. No descriptions and explanations.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "OBJECT",
+                description:
+                  "Output type is JSON object type. When the output type is object type, this is used. No descriptions and explanations.",
+              },
+            },
+            required: ["items"],
+          },
+        },
+      },
+      customType_string: (e) => e.items,
+      customType_number: (e) => e.items,
+      customType_boolean: (e) => e.items,
+      customType_array: (e) => e.items,
+      customType_object: (e) => e.items,
+    };
+    if (response_mime_type && response_mime_type != "") {
       this.response_mime_type = response_mime_type;
+      this.functions = {};
     }
     if (functions && functions.params_) {
       this.functions = functions;
+    }
+    if (functions && Object.keys(functions).length == 0) {
+      this.functions = {};
     }
 
     /** @private */
@@ -142,23 +232,12 @@ class GeminiWithFiles {
    * Set blobs.
    *
    * @param {Blob[]} blobs Blobs for uploading to Gemini.
+   * @param {Boolean} pdfAsImage Default is false. If this is true, when the blob is PDF data, each page is converted to image data.
    * @returns {GeminiWithFiles}.
    */
-  setBlobs(blobs) {
+  setBlobs(blobs, pdfAsImage = false) {
     this.blobs.push(...blobs);
-    return this;
-  }
-
-  /**
-   * ### Description
-   * Upload data (files) to Gemini with resumable upload.
-   * In this case, you can use the file ID on Google Drive and the URL of the direct link of the file.
-   *
-   * @param {Array} array Array including the file IDs or URLs for uploading to Gemini.
-   * @returns {GeminiWithFiles}.
-   */
-  setFileIdsOrUrlsWithResumableUpload(array) {
-    this.resumableUplaods.push(...array);
+    this.pdfAsImage = pdfAsImage;
     return this;
   }
 
@@ -209,47 +288,81 @@ class GeminiWithFiles {
   }
 
   /**
+  * ### Description
+  * Convert PDF to images.
+  *
+  * @private
+  * @param {String} fileId File ID.
+  * @param {Blob} blob PDF blob.
+  * @param {String} url Endpoint for uploading a file.
+  * @returns {Array} Array including blobs of the converted images.
+  */
+  async pdf2images_(fileId, blob, url) {
+    const images = await setPDFBlob(blob)
+      .convertPDFToPng()
+      .catch((err) => {
+        throw new Error(err);
+      });
+    const maxPage = images.length;
+    return images.map((file, i) => {
+      const metadata = { file: { displayName: `fileId@${fileId}$page@${i + 1}$maxPage@${maxPage}` } };
+      return {
+        url,
+        method: "post",
+        payload: { metadata: Utilities.newBlob(JSON.stringify(metadata), "application/json"), file },
+        muteHttpExceptions: true
+      };
+    });
+  }
+
+  /**
    * ### Description
    * Upload files to Gemini.
    *
    * @param {Number} n Number of concurrent upload to Gemini. Default value is 50.
    * @returns {Object} Returned object from Gemini.
    */
-  uploadFiles(n = 50) {
+  async uploadFiles(n = 50) {
     const q = { ...this.queryParameters, uploadType: "multipart" };
     const url = this.addQueryParameters_(this.urlUploadFile, q);
     if (this.fileIds.length > 0) {
       const requests = [];
       for (let i = 0; i < this.fileIds.length; i++) {
         const fileId = this.fileIds[i];
-        const metadata = { file: { displayName: `fileId@${fileId}$page@${1}$maxPage@1` } };
-        const file = this.asImage
-          ? this.fetch_({ url: `https://drive.google.com/thumbnail?sz=w1500&id=${fileId}`, headers: this.headers }).getBlob()
-          : DriveApp.getFileById(fileId).getBlob();
-        requests.push({
-          url,
-          method: "post",
-          payload: { metadata: Utilities.newBlob(JSON.stringify(metadata), "application/json"), file },
-          muteHttpExceptions: true
-        });
+        const inputFile = DriveApp.getFileById(fileId);
+        const mimeType = inputFile.getMimeType();
+        if (this.asImage && [MimeType.PDF, MimeType.GOOGLE_DOCS, MimeType.GOOGLE_SHEETS, MimeType.GOOGLE_SLIDES].includes(mimeType)) {
+          requests.push(...await this.pdf2images_(fileId, inputFile.getBlob(), url));
+        } else {
+          const metadata = { file: { displayName: `fileId@${fileId}$page@${1}$maxPage@1` } };
+          const file = this.asImage ? this.fetch_({ url: `https://drive.google.com/thumbnail?sz=w1500&id=${fileId}`, headers: this.headers }).getBlob() : DriveApp.getFileById(fileId).getBlob();
+          requests.push({
+            url,
+            method: "post",
+            payload: { metadata: Utilities.newBlob(JSON.stringify(metadata), "application/json"), file },
+            muteHttpExceptions: true
+          });
+        }
       }
       return this.requestUploadFiles_(requests, n);
     } else if (this.blobs.length > 0) {
       const requests = [];
       for (let i = 0; i < this.blobs.length; i++) {
         const blob = this.blobs[i];
-        const metadata = { file: { displayName: `blobName@${blob.getName()}` } };
-        requests.push({
-          url,
-          method: "post",
-          payload: { metadata: Utilities.newBlob(JSON.stringify(metadata), "application/json"), file: blob },
-          ...(this.queryParameters.key ? {} : { headers: this.headers }),
-          muteHttpExceptions: true
-        });
+        if (this.pdfAsImage && blob.getContentType() == MimeType.PDF) {
+          requests.push(...await this.pdf2images_(blob.getName(), blob, url));
+        } else {
+          const metadata = { file: { displayName: `blobName@${blob.getName()}` } };
+          requests.push({
+            url,
+            method: "post",
+            payload: { metadata: Utilities.newBlob(JSON.stringify(metadata), "application/json"), file: blob },
+            ...(this.queryParameters.key ? {} : { headers: this.headers }),
+            muteHttpExceptions: true
+          });
+        }
       }
       return this.requestUploadFiles_(requests, n);
-    } else if (this.resumableUplaods.length > 0) {
-      return this.resumableUplaods.map(e => this.uploadApp_(e));
     }
     throw new Error("No upload items.");
   }
@@ -391,8 +504,8 @@ class GeminiWithFiles {
       contents.push({ parts: [{ text: q }, ...files], role: "user" });
     }
     let check = true;
-    let usageMetadataObj;
     const results = [];
+    // let retry = 5;
     const url = this.addQueryParameters_(this.urlGenerateContent, this.queryParameters);
     do {
       retry--;
@@ -425,6 +538,10 @@ class GeminiWithFiles {
           }
 
         } else {
+          if (this.exportTotalTokens) {
+            const objTotalTokens = JSON.parse(res.getContentText());
+            this.totalTokens = objTotalTokens.totalTokens;
+          }
           console.log(res.getContentText());
         }
       }
@@ -445,13 +562,7 @@ class GeminiWithFiles {
       } else if (res.getResponseCode() != 200) {
         throw new Error(res.getContentText());
       }
-      const raw = JSON.parse(res.getContentText());
-      if (this.exportRawData) {
-        results.push(raw);
-        break;
-      }
-      const { candidates, usageMetadata } = raw;
-      usageMetadataObj = { ...usageMetadata };
+      const { candidates } = JSON.parse(res.getContentText());
       if (candidates && !candidates[0]?.content?.parts) {
         results.push(candidates[0]);
         break;
@@ -491,9 +602,6 @@ class GeminiWithFiles {
         this.history = contents;
       }
     } while (check && retry > 0);
-    if (this.exportRawData) {
-      return results;
-    }
     const output = results.pop();
     if (
       !output ||
@@ -506,13 +614,13 @@ class GeminiWithFiles {
     const returnValue = output.text.trim();
     try {
       if (this.exportTotalTokens) {
-        return { returnValue: JSON.parse(returnValue), usageMetadata: usageMetadataObj };
+        return { returnValue: JSON.parse(returnValue), totalTokens: this.totalTokens };
       }
       return JSON.parse(returnValue);
     } catch (stack) {
       // console.warn(stack);
       if (this.exportTotalTokens) {
-        return { returnValue, usageMetadata: usageMetadataObj };
+        return { returnValue, totalTokens: this.totalTokens };
       }
       return returnValue;
     }
@@ -550,268 +658,4 @@ class GeminiWithFiles {
     }
     return res;
   }
-
-  /**
-  * ### Description
-  * Upload large file to Gemini with resumable upload.
-  ref: https://github.com/tanaikech/UploadApp
-  ref: https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81
-  *
-  * @private
-  * @param {Object} obj Object for using UrlFetchApp.fetchAll.
-  * @returns {UrlFetchApp.HTTPResponse} Response from API.
-  */
-  uploadApp_(object) {
-    /**
-     * ### Description
-     * Upload a little large data with Google APIs. The target of this script is the data with several hundred MB.
-     * GitHub: https://github.com/tanaikech/UploadApp
-     * 
-     * Sample situation:
-     * - Upload a file from Google Drive to Gemini, Google Drive, YouTube, and so on.
-     * - Upload a file from the URL outside of Google to Gemini, Google Drive, YouTube, and so on.
-     */
-    class UploadApp {
-
-      /**
-       *
-       * @param {Object} object Information of the source data and the metadata of the destination.
-       * @param {Object} object.source Information of the source data.
-       * @param {Object} object.destination Information of the metadata of the destination.
-       */
-      constructor(object = {}) {
-        this.property = PropertiesService.getScriptProperties();
-        const next = this.property.getProperty("next");
-        if (!next && (!object.source || (!object.source.fileId && !object.source.url))) {
-          throw new Error("Please set a valid object.");
-        } else if (next) {
-          this.tempObject = JSON.parse(next);
-          this.current = this.tempObject.next;
-          this.tempObject.next = 0;
-          if (this.tempObject.result) {
-            delete this.tempObject.result;
-          }
-        } else {
-          this.current = 0;
-          this.tempObject = { orgObject: { ...object } };
-        }
-        if (this.tempObject.orgObject.source.fileId) {
-          this.googleDrive = true;
-          this.fileGet = `https://www.googleapis.com/drive/v3/files/${this.tempObject.orgObject.source.fileId}?supportsAllDrives=true`;
-          this.downloadUrl = `${this.fileGet}&alt=media`;
-        } else {
-          this.googleDrive = false;
-          this.downloadUrl = this.tempObject.orgObject.source.url;
-        }
-        this.startTime = Date.now();
-        this.limitProcessTime = 300 * 1000; // seconds
-        this.authorization = `Bearer ${this.tempObject.orgObject.accessToken || ScriptApp.getOAuthToken()}`;
-        this.chunkSize = 16777216; // Chunk size is 16 MB.
-      }
-
-      /**
-       * ### Description
-       * Main method.
-       *
-       * @returns {Object} Response value. When the file could be completly uploaded, the file metadata of the uploaded file is returned. When the file is not be completly uploaded, an object including message.
-       */
-      run() {
-        if (this.current == 0) {
-          console.log("Get metadata");
-          this.getMetadata_();
-          console.log("Calculate chunks");
-          this.getChunks_();
-          console.log("Get location");
-          this.getLocation_();
-        }
-        console.log("Download and upload data.");
-        this.downloadAndUpload_();
-        return this.tempObject.result;
-      }
-
-      /**
-       * ### Description
-       * Get metadata of the source data.
-       *
-       * @return {void}
-       * @private
-       */
-      getMetadata_() {
-        if (this.googleDrive) {
-          const res = UrlFetchApp.fetch(`${this.fileGet}&fields=mimeType%2Csize`, { headers: { authorization: this.authorization } });
-          const obj = JSON.parse(res.getContentText());
-          if (obj.mimeType.includes("application/vnd.google-apps")) {
-            throw new Error("This script cannot be used to the files related to Google. For example, Google Doc, Google Sheet, and so on.");
-          }
-          this.tempObject.orgObject.source.mimeType = obj.mimeType;
-          this.tempObject.orgObject.source.size = obj.size;
-          return;
-        }
-        const res = UrlFetchApp.fetch(this.downloadUrl, {
-          muteHttpExceptions: true,
-          headers: { Range: "bytes=0-1" }
-        });
-        if (res.getResponseCode() != 206) {
-          throw new Error("This file cannot be done the resumable download.");
-        }
-        const headers = res.getHeaders();
-        const range = headers["Content-Range"].split("\/");
-        this.tempObject.orgObject.source.fileName = (headers["Content-Disposition"] && headers["Content-Disposition"].match(/filename=\"([a-zA-Z0-9\s\S].+)\";/)) ? headers["Content-Disposition"].match(/filename=\"([a-zA-Z0-9\s\S].+)\";/)[1].trim() : this.startTime.toString();
-        this.tempObject.orgObject.source.mimeType = headers["Content-Type"].split(";")[0];
-        this.tempObject.orgObject.source.size = Number(range[1]);
-      }
-
-      /**
-       * ### Description
-       * Calculate the chunks for uploading.
-       *
-       * @return {void}
-       * @private
-       */
-      getChunks_() {
-        const chunks = [...Array(Math.ceil(this.tempObject.orgObject.source.size / this.chunkSize))].map((_, i, a) => [
-          i * this.chunkSize,
-          i == a.length - 1 ? this.tempObject.orgObject.source.size - 1 : (i + 1) * this.chunkSize - 1,
-        ]);
-        this.tempObject.chunks = chunks;
-      }
-
-      /**
-       * ### Description
-       * Get location URL for uploading.
-       *
-       * @return {void}
-       * @private
-       */
-      getLocation_() {
-        const options = {
-          payload: JSON.stringify(this.tempObject.orgObject.destination.metadata),
-          contentType: "application/json",
-          muteHttpExceptions: true,
-        };
-        const q = this.parseQueryParameters_(this.tempObject.orgObject.destination.uploadUrl);
-        if (!q.queryParameters.uploadType) {
-          throw new Error("Please confirm whether your endpoint can be used for the resumable upload. And, please include uploadType=resumable in uploadUrl.");
-        }
-        if (!q.queryParameters.key) {
-          options.headers = { authorization: this.authorization };
-        }
-        const res = UrlFetchApp.fetch(this.tempObject.orgObject.destination.uploadUrl, options);
-        if (res.getResponseCode() != 200) {
-          throw new Error(res.getContentText());
-        }
-        this.tempObject.location = res.getAllHeaders()["Location"];
-      }
-
-      /**
-       * ### Description
-       * Download and upload data.
-       *
-       * @return {void}
-       * @private
-       */
-      downloadAndUpload_() {
-        let res1 = [];
-        const len = this.tempObject.chunks.length;
-        for (let i = this.current; i < len; i++) {
-          const e = this.tempObject.chunks[i];
-          const currentBytes = `${e[0]}-${e[1]}`;
-          console.log(`Now... ${i + 1}/${len}`);
-          const params1 = { headers: { range: `bytes=${currentBytes}` }, muteHttpExceptions: true };
-          if (this.googleDrive) {
-            params1.headers.authorization = this.authorization;
-          }
-          console.log(`Start downloading data with ${currentBytes}`);
-          res1 = UrlFetchApp.fetch(this.downloadUrl, params1).getContent();
-          console.log(`Finished downloading data with ${currentBytes}`);
-          const params2 = {
-            headers: { "Content-Range": `bytes ${currentBytes}/${this.tempObject.orgObject.source.size}` },
-            payload: res1,
-            muteHttpExceptions: true,
-          };
-          console.log(`Start uploading data with ${currentBytes}`);
-          const res2 = UrlFetchApp.fetch(this.tempObject.location, params2);
-          console.log(`Finished uploading data with ${currentBytes}`);
-          const statusCode = res2.getResponseCode();
-          if (statusCode == 200) {
-            console.log("Done.");
-            this.tempObject.result = JSON.parse(res2.getContentText());
-          } else if (statusCode == 308) {
-            console.log("Upload the next chunk.");
-            res1.splice(0, res1.length);
-          } else {
-            throw new Error(res2.getContentText());
-          }
-          if ((Date.now() - this.startTime) > this.limitProcessTime) {
-            this.tempObject.next = i + 1;
-            this.property.setProperty("next", JSON.stringify(this.tempObject));
-            break;
-          }
-        }
-        if (this.tempObject.next > 0 && !this.tempObject.result) {
-          const message = "There is the next upload chunk. So, please run the script again.";
-          console.warn(message);
-          this.tempObject.result = { message };
-        } else {
-          this.property.deleteProperty("next");
-        }
-      }
-
-      /**
-       * ### Description
-       * Parse query parameters.
-       * ref: https://github.com/tanaikech/UtlApp?tab=readme-ov-file#parsequeryparameters
-       * 
-       * @param {String} url URL including the query parameters.
-       * @return {Array} Array including the parsed query parameters.
-       * @private
-       */
-      parseQueryParameters_(url) {
-        if (url === null || typeof url != "string") {
-          throw new Error("Please give URL (String) including the query parameters.");
-        }
-        const s = url.split("?");
-        if (s.length == 1) {
-          return { url: s[0], queryParameters: null };
-        }
-        const [baseUrl, query] = s;
-        if (query) {
-          const queryParameters = query.split("&").reduce(function (o, e) {
-            const temp = e.split("=");
-            const key = temp[0].trim();
-            let value = temp[1].trim();
-            value = isNaN(value) ? value : Number(value);
-            if (o[key]) {
-              o[key].push(value);
-            } else {
-              o[key] = [value];
-            }
-            return o;
-          }, {});
-          return { url: baseUrl, queryParameters };
-        }
-        return null;
-      }
-    }
-
-    const { url, fileId } = object;
-    const displayName = url ? `url@${url}$page@${1}$maxPage@1` : `fileId@${fileId}$page@${1}$maxPage@1`;
-    const obj = {
-      destination: {
-        uploadUrl: `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${this.queryParameters.key}`,
-        metadata: { file: { displayName } }
-      },
-      accessToken: this.accessToken,
-    };
-    if (url) {
-      obj.source = { url };
-    } else if (fileId) {
-      obj.source = { fileId };
-    } else {
-      throw new Error("No URL or file ID.");
-    }
-    const { file } = new UploadApp(obj).run();
-    return file;
-  }
-
 }

@@ -58,19 +58,6 @@ function setBlobs(blobs, pdfAsImage = false) {
 
 /**
  * ### Description
- * Upload data (files) to Gemini with resumable upload.
- * In this case, you can use the file ID on Google Drive and the URL of the direct link of the file.
- *
- * @param {Array} array Array including the file IDs or URLs for uploading to Gemini.
- * @returns {GeminiWithFiles}.
- */
-function setFileIdsOrUrlsWithResumableUpload(array) {
-  this.geminiWithFiles.setFileIdsOrUrlsWithResumableUpload(array);
-  return this.geminiWithFiles;
-}
-
-/**
- * ### Description
  * Create object for using the generateContent method.
  * 
  * @param {Array} fileList File list from the uploadFiles and getFileList method.
@@ -89,8 +76,8 @@ function withUploadedFilesByGenerateContent(fileList = []) {
  * @param {Number} n Number of concurrent upload to Gemini. Default value is 50.
  * @returns {Object} Returned object from Gemini.
  */
-function uploadFiles(n = 50) {
-  return this.geminiWithFiles.uploadFiles(n);
+async function uploadFiles(n = 50) {
+  return await this.geminiWithFiles.uploadFiles(n);
 }
 
 /**
