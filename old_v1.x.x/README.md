@@ -5,7 +5,7 @@
 
 <a name="overview"></a>
 
-![](images/fig1.jpg)
+![](../images/fig1.jpg)
 
 # Overview
 
