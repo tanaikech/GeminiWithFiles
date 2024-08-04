@@ -170,9 +170,12 @@ The value of `object` is as follows.
 {Array} object.history History for continuing chat.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
+{String} object.responseMimeType In the current stage, only "application/json" can be used.
 {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
 {Boolean} object.exportTotalTokens When this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
 {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
+{Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
+{Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
 ```
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
@@ -691,6 +694,7 @@ The sample scripts are as follows.
 - [Generate content with a movie file](#generatecontentwithamoviefile)
 - [Export total tokens](#exporttotaltokens)
 - [Use large file (over 50 MB)](#useover50mbdata)
+- [Use codeExecution](#usecodeexecution)
 
 <a name="generatecontent"></a>
 
@@ -1351,6 +1355,51 @@ From v2.x.x, this can be achieved. This is from [Ref](https://github.com/tanaike
 
 The sample script can be seen at [here](#setfileidsorurlsWithresumableupload).
 
+<a name="usecodeexecution"></a>
+
+## Use codeExecution
+
+This prompt is from [this official document](https://ai.google.dev/gemini-api/docs/code-execution?lang=python).
+
+In order to use codeExecution, please use `tools: [{ codeExecution: {} }]` and `exportRawData: true` into the `geminiWithFiles` method as follows.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, tools: [{ codeExecution: {} }], exportRawData: true });
+  // const g = new GeminiWithFiles({ apiKey, tools: [{ codeExecution: {} }], exportRawData: true }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const res = g.generateContent({ q: 'What is the sum of the first 50 prime numbers? Generate and run code for the calculation, and make sure you get all 50.' });
+  console.log(res.candidates[0].content.parts);
+}
+```
+
+When this script is run, the following result is obtained.
+
+```json
+[
+   {
+      "text":"I will generate Python code to calculate the sum of the first 50 prime numbers.\n\n"
+   },
+   {
+      "executableCode":{
+         "language":"PYTHON",
+         "code":"\ndef is_prime(num):\n  \"\"\"\n  Checks if a number is prime.\n  \"\"\"\n  if num <= 1:\n    return False\n  for i in range(2, int(num**0.5) + 1):\n    if num % i == 0:\n      return False\n  return True\n\nprimes = []\nn = 2\nwhile len(primes) < 50:\n  if is_prime(n):\n    primes.append(n)\n  n += 1\n\nprint(f\\'The first 50 prime numbers are: {primes}\\')\nprint(f\\'The sum of the first 50 prime numbers is: {sum(primes)}\\')\n"
+      }
+   },
+   {
+      "codeExecutionResult":{
+         "outcome":"OUTCOME_OK",
+         "output":"The first 50 prime numbers are: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229]\nThe sum of the first 50 prime numbers is: 5117\n"
+      }
+   },
+   {
+      "text":"The code first defines a function `is_prime(num)` to check if a number is prime. The function iterates through all numbers from 2 to the square root of the given number. If any of these numbers divide the given number, then the number is not prime. Otherwise, the number is prime.\n\nThen, the code initializes an empty list called `primes` to store the prime numbers. It also initializes a variable `n` to 2, which is the first prime number.\n\nThe code then enters a `while` loop that continues until 50 prime numbers are found. Inside the loop, the code checks if the current number `n` is prime using the `is_prime` function. If it is, the number is appended to the `primes` list.\n\nAfter the loop, the code prints the list of prime numbers and the sum of the prime numbers.\n\nThe output shows that the sum of the first 50 prime numbers is 5117."
+   }
+]
+```
+
 # IMPORTANT
 
 - If an error occurs, please try again after several minutes.
@@ -1438,5 +1487,9 @@ I have already proposed the following future requests to the Google issue tracke
     - The default model was changed from `models/gemini-1.5-pro-latest` to `models/gemini-1.5-flash-latest`.
     - The export values with `exportTotalTokens` were changed. After v2.x.x, when this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
     - After v2.x.x, the large files can be uploaded to Gemini. This is from [this respository](https://github.com/tanaikech/UploadApp) and [this post](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
+
+- v2.0.1 (August 3, 2024)
+
+  1. From this version, `codeExecution` can be used. [Ref](#usecodeexecution)
 
 [TOP](#top)

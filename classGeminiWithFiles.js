@@ -4,6 +4,9 @@
  * GeminiWithFiles can upload files, generate content, and create descriptions
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
+ * 
+ * GeminiWithFiles v2.0.1
+ * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
 
@@ -22,9 +25,11 @@ class GeminiWithFiles {
    * @param {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
    * @param {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
    * @param {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
+   * @param {Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
+   * @param {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, systemInstruction, exportTotalTokens, exportRawData } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-flash-latest"; // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
@@ -104,10 +109,11 @@ class GeminiWithFiles {
     }
 
     /** @private */
-    this.toolConfig = null;
+    this.toolConfig = toolConfig || {};
     const keys = Object.keys(this.functions);
     if (keys.length > 0) {
       this.toolConfig = {
+        ...this.toolConfig,
         functionCallingConfig: {
           mode: "ANY",
           allowedFunctionNames: keys.filter(e => e != "params")
@@ -121,6 +127,9 @@ class GeminiWithFiles {
      * @type {Array}
      */
     this.history = history || [];
+
+    /** @private */
+    this.tools = tools || [];
   }
 
   /**
@@ -393,6 +402,7 @@ class GeminiWithFiles {
     let check = true;
     let usageMetadataObj;
     const results = [];
+    let rawResult = {};
     const url = this.addQueryParameters_(this.urlGenerateContent, this.queryParameters);
     do {
       retry--;
@@ -403,8 +413,11 @@ class GeminiWithFiles {
       if (this.systemInstruction) {
         payload.systemInstruction = this.systemInstruction;
       }
-      if (this.toolConfig) {
+      if (Object.keys(this.toolConfig).length > 0) {
         payload.toolConfig = this.toolConfig;
+      }
+      if (this.tools) {
+        payload.tools = this.tools;
       }
       if (this.doCountToken) {
         const res = this.fetch_({
@@ -447,7 +460,7 @@ class GeminiWithFiles {
       }
       const raw = JSON.parse(res.getContentText());
       if (this.exportRawData) {
-        results.push(raw);
+        rawResult = { ...raw };
         break;
       }
       const { candidates, usageMetadata } = raw;
@@ -492,7 +505,7 @@ class GeminiWithFiles {
       }
     } while (check && retry > 0);
     if (this.exportRawData) {
-      return results;
+      return rawResult;
     }
     const output = results.pop();
     if (
