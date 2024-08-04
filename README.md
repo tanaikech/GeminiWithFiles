@@ -1488,7 +1488,7 @@ I have already proposed the following future requests to the Google issue tracke
     - The export values with `exportTotalTokens` were changed. After v2.x.x, when this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
     - After v2.x.x, the large files can be uploaded to Gemini. This is from [this respository](https://github.com/tanaikech/UploadApp) and [this post](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
 
-- v2.0.1 (August 3, 2024)
+- v2.0.1 (August 4, 2024)
 
   1. From this version, `codeExecution` can be used. [Ref](#usecodeexecution)
 
