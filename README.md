@@ -43,6 +43,9 @@ I created this library based on the following reports.
 - [Specifying Output Types for Gemini API with Google Apps Script](https://medium.com/google-cloud/specifying-output-types-for-gemini-api-with-google-apps-script-c2f6a753c8d7)
 - [Parsing Invoices using Gemini 1.5 API with Google Apps Script](https://medium.com/google-cloud/parsing-invoices-using-gemini-1-5-api-with-google-apps-script-1f32af1678f2)
 - [Taming the Wild Output: Effective Control of Gemini API Response Formats with response_mime_type](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
+- [Gemini API with JSON schema](https://medium.com/google-cloud/gemini-api-with-json-schema-3dbdabac7d19)
+- [Taming the Wild Output: Effective Control of Gemini API Response Formats with response_schema](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-schema-ae0097b97502)
+- [Harnessing Gemini’s Power: A Guide to Generating Content from Structured Data](https://medium.com/google-cloud/harnessing-geminis-power-a-guide-to-generating-content-from-structured-data-45080dac0bbb)
 
 # Features
 
@@ -160,7 +163,7 @@ const g = new GeminiWithFiles(object);
 
 The value of `object` is as follows.
 
-```
+````
 {Object} object API key or access token for using Gemini API.
 {String} object.apiKey API key.
 {String} object.accessToken Access token.
@@ -171,18 +174,23 @@ The value of `object` is as follows.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
 {String} object.responseMimeType In the current stage, only "application/json" can be used.
-{Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
-{Boolean} object.exportTotalTokens When this is true, the object `usageMetadata` including `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount` is exported. At that time, the generated content and `usageMetadata` are returned as an object.
+{Object} object.response_schema JSON schema for controlling the output format.
+{Object} object.responseSchema JSON schema for controlling the output format.
+{Number} object.temperature Control the randomness of the output.
+{Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
+{Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
 {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
 {Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
 {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
-```
+````
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
 
 - When you want to use `systemInstruction`, please confirm the official document [Ref](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini).
 
 - Gemini 1.5 Flash Latest (`models/gemini-1.5-flash-latest`) is used as the default model. When you want to use Gemini 1.5 Pro Latest (`models/gemini-1.5-pro-latest`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-1.5-pro-latest" })`.
+
+- In the current stage, when `response_schema` is used, `response_mime_type: "application/json"` is automatically used.
 
 <a name="setfileIds"></a>
 
@@ -1491,5 +1499,9 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.1 (August 4, 2024)
 
   1. From this version, `codeExecution` can be used. [Ref](#usecodeexecution)
+
+- v2.0.2 (September 26, 2024)
+
+  1. As the option for `generationConfig`, the properties `response_schema` and `temperature` were added.
 
 [TOP](#top)
