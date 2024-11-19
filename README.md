@@ -182,6 +182,8 @@ The value of `object` is as follows.
 {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
 {Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
 {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
+{PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
+{Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
 ````
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
@@ -425,6 +427,8 @@ This method can upload files over 50 MB.
 
 From v2.x.x, this can be achieved. This is from [Ref](https://github.com/tanaikech/UploadApp) and [Ref](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81).
 
+From v2.0.3, when you use this method, please include `propertiesService: PropertiesService.getScriptProperties()` into the initial object as follows. Because, when `PropertiesService.getScriptProperties()` is used in the library, the values are put into the library. When I created [Ref](https://github.com/tanaikech/UploadApp) and [Ref](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81), I supposed that the script is used by copying and pasting instead of the library. So, I included `PropertiesService.getScriptProperties()` in the script. But I noticed that when this is used with GeminiWithFiles, each user is required to use `PropertiesService.getScriptProperties()`. So, I modified this.
+
 The sample script is as follows.
 
 ```javascript
@@ -436,8 +440,8 @@ function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const q = "Description this video.";
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
   const fileList = g.setFileIdsOrUrlsWithResumableUpload([{ url }]).uploadFiles();
 
@@ -515,8 +519,25 @@ function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const q = "Description this video.";
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+
+  const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q });
+  console.log(res);
+}
+```
+
+As an additional option, when you want to upload the data with the resumable upload as a new upload, please set `resumableUploadAsNewUpload: true` as follows. By this, the property is cleared and the upload is run.
+
+```javascript
+function myFunction() {
+  const fileList = [###]; // This is from the above script.
+  
+  const apiKey = "###"; // Please set your API key.
+  const q = "Description this video.";
+
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties(), resumableUploadAsNewUpload: true }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties(), resumableUploadAsNewUpload: true }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
   const res = g.withUploadedFilesByGenerateContent(fileList).generateContent({ q });
   console.log(res);
@@ -1503,5 +1524,10 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.2 (September 26, 2024)
 
   1. As the option for `generationConfig`, the properties `response_schema` and `temperature` were added.
+
+- v2.0.3 (November 19, 2024)
+
+  1. I modified the specification of `setFileIdsOrUrlsWithResumableUpload`. From v2.0.3, when you use this method, please include `propertiesService: PropertiesService.getScriptProperties()` into the initial object as follows. Because, when `PropertiesService.getScriptProperties()` is used in the library, the values are put into the library. When I created [Ref](https://github.com/tanaikech/UploadApp) and [Ref](https://medium.com/google-cloud/uploading-large-files-to-gemini-with-google-apps-script-overcoming-50-mb-limit-6ea63204ee81), I supposed that the script is used by copying and pasting instead of the library. So, I included `PropertiesService.getScriptProperties()` in the script. But I noticed that when this is used with GeminiWithFiles, each user is required to use `PropertiesService.getScriptProperties()`. So, I modified this.
+  2. As an additional option, when you want to upload the data with the resumable upload as a new upload, please set `resumableUploadAsNewUpload: true`. [Ref](https://github.com/tanaikech/GeminiWithFiles?tab=readme-ov-file#setfileidsorurlswithresumableupload) By this, the property is cleared and the upload is run.
 
 [TOP](#top)

@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.2
+ * GeminiWithFiles v2.0.3
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -30,9 +30,11 @@ class GeminiWithFiles {
    * @param {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
    * @param {Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
    * @param {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
+   * @param {PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
+   * @param {Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-flash-latest"; // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
@@ -138,6 +140,12 @@ class GeminiWithFiles {
 
     /** @private */
     this.tools = tools || [];
+
+    /** @private */
+    this.propertiesService = propertiesService;
+
+    /** @private */
+    this.resumableUploadAsNewUpload = resumableUploadAsNewUpload;
   }
 
   /**
@@ -611,7 +619,15 @@ class GeminiWithFiles {
        * @param {Object} object.destination Information of the metadata of the destination.
        */
       constructor(object = {}) {
-        this.property = PropertiesService.getScriptProperties();
+
+        this.property = object.propertiesService;
+        if (this.resumableUploadAsNewUpload) {
+          const tempProp = this.property.getKeys().find("next");
+          if (tempProp) {
+            this.property.deleteProperty("next");
+          }
+        }
+
         const next = this.property.getProperty("next");
         if (!next && (!object.source || (!object.source.fileId && !object.source.url))) {
           throw new Error("Please set a valid object.");
@@ -841,6 +857,13 @@ class GeminiWithFiles {
     } else {
       throw new Error("No URL or file ID.");
     }
+
+    if (this.propertiesService) {
+      obj.propertiesService = this.propertiesService;
+    } else {
+      throw new Error(`Please set "PropertiesService.getScriptProperties()" as "propertiesService".`);
+    }
+
     const { file } = new UploadApp(obj).run();
     return file;
   }
