@@ -499,8 +499,8 @@ function myFunction() {
   const apiKey = "###"; // Please set your API key.
   const q = "Description this video.";
 
-  const g = GeminiWithFiles.geminiWithFiles({ apiKey }); // This is for installing GeminiWithFiles as a library.
-  // const g = new GeminiWithFiles({ apiKey }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
+  const g = GeminiWithFiles.geminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for installing GeminiWithFiles as a library.
+  // const g = new GeminiWithFiles({ apiKey, propertiesService: PropertiesService.getScriptProperties() }); // This is for directly copying and pasting Class GeminiWithFiles into your Google Apps Script project.
 
   const fileList = g.setFileIdsOrUrlsWithResumableUpload([{ url }]).uploadFiles();
   console.log(JSON.stringify(fileList));
@@ -1524,6 +1524,8 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.2 (September 26, 2024)
 
   1. As the option for `generationConfig`, the properties `response_schema` and `temperature` were added.
+
+<a name="v203"></a>
 
 - v2.0.3 (November 19, 2024)
 
