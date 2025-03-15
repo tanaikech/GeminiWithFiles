@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.3
+ * GeminiWithFiles v2.0.4
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -32,9 +32,11 @@ class GeminiWithFiles {
    * @param {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
    * @param {PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
    * @param {Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
+   * @param {Object} object.generationConfig The default is {}. When you use the specific prpperties of response_mime_type, response_schema, and temperature, those are used to generationConfig.
+   * 
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
 
     /** @private */
     this.model = model || "models/gemini-1.5-flash-latest"; // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
@@ -146,6 +148,9 @@ class GeminiWithFiles {
 
     /** @private */
     this.resumableUploadAsNewUpload = resumableUploadAsNewUpload;
+
+    /** @private */
+    this.generationConfig = generationConfig || {};
   }
 
   /**
@@ -424,7 +429,7 @@ class GeminiWithFiles {
       retry--;
       const payload = { contents, tools: [{ function_declarations }] };
 
-      payload.generationConfig = {};
+      payload.generationConfig = this.generationConfig;
       if (this.response_mime_type != "") {
         payload.generationConfig.response_mime_type = this.response_mime_type;
       }
