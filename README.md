@@ -695,10 +695,10 @@ function myFunction() {
   const g = new GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-2.0-flash-exp", generationConfig: { responseModalities: ["TEXT", "IMAGE"] } });
   const prompts = [
     "Create an image of a clean whiteboard.",
-    "Add an illustration drawn with a whiteboard marker of an apple to the upper left on the whiteboard. Don't stick out it from the whiteboard.",
-    "Add an illustration drawn with a whiteboard marker of an orange to the upper right on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration of an apple drawn with a whiteboard marker to the upper left on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration of an orange drawn with a whiteboard marker to the upper right on the whiteboard. Don't stick out it from the whiteboard.",
     "Add an illustration of a banana drawn with a whiteboard marker to the bottom left on the whiteboard. Don't stick out it from the whiteboard.",
-    "Add an illustration drawn with a whiteboard marker of a kiwi to the bottom right on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration of a kiwi drawn with a whiteboard marker to the bottom right on the whiteboard. Don't stick out it from the whiteboard.",
   ];
   prompts.forEach((q, i) => {
     const res = g.chat({ parts: [{ text: q }], role: 'user' });
