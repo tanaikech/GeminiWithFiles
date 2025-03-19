@@ -126,3 +126,14 @@ function deleteFiles(names, n = 50) {
 function generateContent(object) {
   return this.geminiWithFiles.generateContent(object);
 }
+
+/**
+ * ### Description
+ * Method for generating content with the chat.
+ *
+ * @param {Object} object Object for chat with Gemini API.
+ * @returns {Object} Output value.
+ */
+function chat(object) {
+  return this.geminiWithFiles.chat(object);
+}

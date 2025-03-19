@@ -144,6 +144,7 @@ Also, you can see the official document of Gemini API at [https://ai.google.dev/
 | [deleteFiles(names, n = 50)](#deletefiles)                                               | Delete files from Gemini.                           |
 | [generateContent(object)](#generatecontent)                                              | Main method. Generate content by Gemini API.        |
 | [setFileIdsOrUrlsWithResumableUpload(object)](#setfileidsorurlsWithresumableupload) | File over 50 MB can be uploaded to Gemini. |
+| [chat(object)](#chat) | When this method is used, you can generate content with Gemini API through the chat. |
 
 ## Constructor
 
@@ -655,6 +656,63 @@ By using `exportRawData: true`, you can retrieve the raw data from Gemini API as
       }
    }
 ]
+```
+
+<a name="chat"></a>
+
+## chat
+
+When this method is used, you can generate content with Gemini API through the chat.
+
+The 1st sample script is as follows. When this script is run, the last answer will be `What is Google documents?`.
+
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = new GeminiWithFiles.geminiWithFiles({ apiKey });
+  const prompts = [
+    "What is Google Apps Script? This is my 1st question.",
+    "What is Google documents? This is my 2nd question.",
+    "What is my Google spreadsheets? This is my 3rd question.",
+    "What is my Google slides? This is my 4th question.",
+    "What is my 2nd question?"
+  ];
+  prompts.forEach(q => {
+    const res = g.chat({ parts: [{ text: q }], role: 'user' });
+    console.log(res.candidates[0].content.parts[0].text);
+  });
+}
+```
+
+As another sample script, the following script generates the evolved images by the chat. When this script is run, the evolved images by the chat are created in the root folder.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const g = new GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-2.0-flash-exp", generationConfig: { responseModalities: ["TEXT", "IMAGE"] } });
+  const prompts = [
+    "Create an image of a clean whiteboard.",
+    "Add an illustration drawn with a whiteboard marker of an apple to the upper left on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration drawn with a whiteboard marker of an orange to the upper right on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration of a banana drawn with a whiteboard marker to the bottom left on the whiteboard. Don't stick out it from the whiteboard.",
+    "Add an illustration drawn with a whiteboard marker of a kiwi to the bottom right on the whiteboard. Don't stick out it from the whiteboard.",
+  ];
+  prompts.forEach((q, i) => {
+    const res = g.chat({ parts: [{ text: q }], role: 'user' });
+    const imageObj = res.candidates[0].content.parts.find(e => e.inlineData);
+    if (imageObj) {
+      console.log("Image was created.");
+      const imageBlob = Utilities.newBlob(Utilities.base64Decode(imageObj.inlineData.data), imageObj.inlineData.mimeType);
+      DriveApp.createFile(imageBlob.setName(`${i + 1}_${q}`));
+    } else {
+      console.warn("Image was not created.");
+      console.log(res.candidates[0].content.parts[0].text);
+    }
+  });
+}
 ```
 
 ## Additional information
@@ -1591,5 +1649,12 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.4 (March 15, 2025)
 
   1. Property `generationConfig` was added to the method `geminiWithFiles`. By this, you can use all properties for `generationConfig`. [Ref](https://ai.google.dev/api/generate-content#v1beta.GenerationConfig) You can see the sample scripts at "[Use googleSearch for grounding](#usegooglesearch)" and "[Generate image](#generateimage)".
+
+<a name="v205"></a>
+
+- v2.0.5 (March 19, 2025)
+
+  1. A new method `chat` was added. [Ref](#chat) When this method is used, you can generate content with Gemini API through the chat.
+  2. The default model was changed from `models/gemini-1.5-flash-latest` to `models/gemini-2.0-flash`.
 
 [TOP](#top)

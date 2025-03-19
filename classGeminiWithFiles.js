@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.4
+ * GeminiWithFiles v2.0.5
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -39,7 +39,9 @@ class GeminiWithFiles {
     const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
 
     /** @private */
-    this.model = model || "models/gemini-1.5-flash-latest"; // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
+    this.model = model || "models/gemini-2.0-flash";
+    // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
+    // After v2.0.5, the model was changed from "models/gemini-1.5-flash-latest" to "models/gemini-2.0-flash".
 
     /** @private */
     this.version = version || "v1beta";
@@ -560,6 +562,21 @@ class GeminiWithFiles {
       }
       return returnValue;
     }
+  }
+
+  /**
+   * ### Description
+   * This method is used for generating content as chat.
+   * 
+   * @param {Object} obj Object for generating content as chat.
+   * @return {Object} Response value as an object.
+   */
+  chat(obj) {
+    this.exportRawData = true;
+    const res = this.generateContent(obj);
+    this.history.push(obj);
+    this.history.push(res.candidates[0].content);
+    return res;
   }
 
   /**
