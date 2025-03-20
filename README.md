@@ -683,6 +683,8 @@ function myFunction() {
     const res = g.chat({ parts: [{ text: q }], role: 'user' });
     console.log(res.candidates[0].content.parts[0].text);
   });
+  
+  console.log(g.history); // If you want to confirm the history, you can use this.
 }
 ```
 
@@ -712,6 +714,8 @@ function myFunction() {
       console.log(res.candidates[0].content.parts[0].text);
     }
   });
+
+  console.log(g.history); // If you want to confirm the history, you can use this.
 }
 ```
 
