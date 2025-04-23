@@ -378,7 +378,7 @@ class GeminiWithFiles {
     let uploadedFiles = this.fileList.length > 0 ? this.fileList : [];
     if (uploadedFiles.length > 0) {
       const n = uploadedFiles.reduce((n, o) => (n += o.files ? o.files.length : 1), 0);
-      console.log(`${n} uploaded files are used with generateCotent.`);
+      console.log(`${n} uploaded files are used with generateContent.`);
     }
     const function_declarations = Object.keys(this.functions).flatMap((k) =>
       k != "params_"

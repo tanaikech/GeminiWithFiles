@@ -1694,5 +1694,6 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.6 (April 23, 2025)
 
   1. A new method `countTokens` was added. [Ref](#counttokens) When this method is used, you can count tokens of the request.
+  2. This pull request was reflected. [Ref](https://github.com/tanaikech/GeminiWithFiles/pull/6)
 
 [TOP](#top)
