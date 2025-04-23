@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.5
+ * GeminiWithFiles v2.0.6
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -577,6 +577,36 @@ class GeminiWithFiles {
     this.history.push(obj);
     this.history.push(res.candidates[0].content);
     return res;
+  }
+
+  /**
+   * ### Description
+   * Method for counting tokens of the request.
+   *
+   * @param {Object} object Object for chat with Gemini API.
+   * @returns {Object} Output value.
+   */
+  countTokens(obj) {
+    const res = this.fetch_({
+      url: this.addQueryParameters_(this.urlCountToken, this.queryParameters),
+      method: "post",
+      payload: JSON.stringify(obj),
+      contentType: "application/json",
+      ...(this.queryParameters.key ? {} : { headers: this.headers }),
+      muteHttpExceptions: true,
+    }, false);
+    const str = res.getContentText();
+    if (res.getResponseCode() != 200) {
+
+      if (files && files.length > 0) {
+        // I confirmed that this issue was resolved on Jun 2, 2024.
+        // So, I believe that this warning will not be used.
+        console.warn("In the current stage, when the uploaded files are used with countToken, an error like 'PERMISSION_DENIED'. So, at this time, the script is run as 'doCountToken: false'. I have already reported this. https://issuetracker.google.com/issues/343257597 I believe that this will be resolved in the future update.");
+      }
+
+      throw new Error(str);
+    }
+    return JSON.parse(str);
   }
 
   /**

@@ -145,6 +145,7 @@ Also, you can see the official document of Gemini API at [https://ai.google.dev/
 | [generateContent(object)](#generatecontent)                                              | Main method. Generate content by Gemini API.        |
 | [setFileIdsOrUrlsWithResumableUpload(object)](#setfileidsorurlsWithresumableupload) | File over 50 MB can be uploaded to Gemini. |
 | [chat(object)](#chat) | When this method is used, you can generate content with Gemini API through the chat. |
+| [countTokens(object)](#counttokens) | Count tokens. |
 
 ## Constructor
 
@@ -718,6 +719,33 @@ function myFunction() {
   console.log(g.history); // If you want to confirm the history, you can use this.
 }
 ```
+
+<a name="counttokens"></a>
+
+## countTokens
+
+When this method is used, you can count tokens of your request. You can retrieve only the tokens.
+
+```javascript
+function myFunction() {
+  const apiKey = "###"; // Please set your API key.
+
+  const object = { contents: [{ parts: [{ text: "What is Google Apps Script?" }] }] };
+
+  const g = new GeminiWithFiles.geminiWithFiles({ apiKey });
+  const res = g.countTokens(object);
+  console.log(res)
+}
+```
+
+When this script is run, the following result is obtained.
+
+```json
+{
+  totalTokens: 6,
+  promptTokensDetails: [{ modality: "TEXT", tokenCount: 6 }]
+}
+``
 
 ## Additional information
 
@@ -1660,5 +1688,11 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. A new method `chat` was added. [Ref](#chat) When this method is used, you can generate content with Gemini API through the chat.
   2. The default model was changed from `models/gemini-1.5-flash-latest` to `models/gemini-2.0-flash`.
+
+<a name="v206"></a>
+
+- v2.0.6 (April 23, 2025)
+
+  1. A new method `countTokens` was added. [Ref](#counttokens) When this method is used, you can count tokens of the request.
 
 [TOP](#top)

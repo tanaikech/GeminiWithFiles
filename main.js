@@ -137,3 +137,14 @@ function generateContent(object) {
 function chat(object) {
   return this.geminiWithFiles.chat(object);
 }
+
+/**
+ * ### Description
+ * Method for counting tokens of the request.
+ *
+ * @param {Object} object Object for chat with Gemini API.
+ * @returns {Object} Output value.
+ */
+function countTokens(object) {
+  return this.geminiWithFiles.countTokens(object);
+}
