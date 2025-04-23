@@ -742,8 +742,8 @@ When this script is run, the following result is obtained.
 
 ```json
 {
-  totalTokens: 6,
-  promptTokensDetails: [{ modality: "TEXT", tokenCount: 6 }]
+  "totalTokens": 6,
+  "promptTokensDetails": [{ "modality": "TEXT", "tokenCount": 6 }]
 }
 ```
 
