@@ -745,7 +745,7 @@ When this script is run, the following result is obtained.
   totalTokens: 6,
   promptTokensDetails: [{ modality: "TEXT", tokenCount: 6 }]
 }
-``
+```
 
 ## Additional information
 
