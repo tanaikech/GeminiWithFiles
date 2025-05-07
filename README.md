@@ -1696,4 +1696,10 @@ I have already proposed the following future requests to the Google issue tracke
   1. A new method `countTokens` was added. [Ref](#counttokens) When this method is used, you can count tokens of the request.
   2. This pull request was reflected. [Ref](https://github.com/tanaikech/GeminiWithFiles/pull/6)
 
+<a name="v207"></a>
+
+- v2.0.7 (May 7, 2025)
+
+  1. The default model was changed from `models/gemini-2.0-flash` to `models/gemini-2.5-flash-preview-04-17`.
+
 [TOP](#top)

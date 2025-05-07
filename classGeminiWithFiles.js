@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.6
+ * GeminiWithFiles v2.0.7
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -15,7 +15,7 @@ class GeminiWithFiles {
    * @param {Object} object API key or access token for using Gemini API.
    * @param {String} object.apiKey API key.
    * @param {String} object.accessToken Access token.
-   * @param {String} object.model Model. Default is "models/gemini-1.5-pro-latest".
+   * @param {String} object.model Model. Default is "models/gemini-2.5-flash-preview-04-17".
    * @param {String} object.version Version of API. Default is "v1beta".
    * @param {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
    * @param {Array} object.history History for continuing chat.
@@ -39,9 +39,10 @@ class GeminiWithFiles {
     const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
 
     /** @private */
-    this.model = model || "models/gemini-2.0-flash";
-    // After v2.0.0, the model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
-    // After v2.0.5, the model was changed from "models/gemini-1.5-flash-latest" to "models/gemini-2.0-flash".
+    this.model = model || "models/gemini-2.5-flash-preview-04-17";
+    // After v2.0.0, the default model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
+    // After v2.0.5, the default model was changed from "models/gemini-1.5-flash-latest" to "models/gemini-2.0-flash".
+    // After v2.0.7, the default model was changed from "models/gemini-2.0-flash" to "models/gemini-2.5-flash-preview-04-17".
 
     /** @private */
     this.version = version || "v1beta";

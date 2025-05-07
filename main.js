@@ -15,7 +15,7 @@ var appName = "GeminiWithFiles";
  * {Object} object API key or access token for using Gemini API.
  * {String} object.apiKey API key.
  * {String} object.accessToken Access token.
- * {String} object.model Model. Default is "models/gemini-1.5-pro-latest".
+ * {String} object.model Model. Default is "models/gemini-2.5-flash-preview-04-17".
  * {String} object.version Version of API. Default is "v1beta".
  * {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
  * {Array} object.history History for continuing chat.
