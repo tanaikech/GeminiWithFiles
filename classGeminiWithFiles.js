@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.7
+ * GeminiWithFiles v2.0.8
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -131,7 +131,7 @@ class GeminiWithFiles {
         ...this.toolConfig,
         functionCallingConfig: {
           mode: "ANY",
-          allowedFunctionNames: keys.filter(e => e != "params")
+          allowedFunctionNames: keys.filter(e => e != "params" && e != "params_")
         }
       }
     }
@@ -385,8 +385,9 @@ class GeminiWithFiles {
       k != "params_"
         ? {
           name: k,
-          description: this.functions.params_[k].description,
+          description: this.functions.params_[k]?.description,
           parameters: this.functions.params_[k]?.parameters,
+          response: this.functions.params_[k]?.response,
         }
         : []
     );
@@ -430,7 +431,9 @@ class GeminiWithFiles {
     const url = this.addQueryParameters_(this.urlGenerateContent, this.queryParameters);
     do {
       retry--;
-      const payload = { contents, tools: [{ function_declarations }] };
+
+      const tools = function_declarations.length > 0 ? [{ function_declarations }] : [];
+      const payload = { contents, tools };
 
       payload.generationConfig = this.generationConfig;
       if (this.response_mime_type != "") {
@@ -450,7 +453,7 @@ class GeminiWithFiles {
       if (Object.keys(this.toolConfig).length > 0) {
         payload.toolConfig = this.toolConfig;
       }
-      if (this.tools) {
+      if (this.tools && this.tools.length > 0) {
         payload.tools = this.tools;
       }
       if (this.doCountToken) {
@@ -506,7 +509,8 @@ class GeminiWithFiles {
       const partsAr = (candidates && candidates[0]?.content?.parts) || [];
       results.push(...partsAr);
       contents.push({ parts: partsAr.slice(), role: "model" });
-      check = partsAr.find((o) => o.hasOwnProperty("functionCall"));
+      // check = partsAr.find((o) => o.hasOwnProperty("functionCall"));
+      check = partsAr[partsAr.length - 1].hasOwnProperty("functionCall");
       if (check && check.functionCall?.name) {
         const functionName = check.functionCall.name;
         const res2 = this.functions[functionName](
@@ -570,10 +574,16 @@ class GeminiWithFiles {
    * This method is used for generating content as chat.
    * 
    * @param {Object} obj Object for generating content as chat.
+   * @param {Object} options If this is used, the internal values can be reset. For example, when g.chat({ parts: [{ text: "sample" }], role: 'user' }, {functions: []}) is used, the functions can be cleared.
    * @return {Object} Response value as an object.
    */
-  chat(obj) {
+  chat(obj, options = {}) {
     this.exportRawData = true;
+    for (let [k, v] of Object.entries(options)) {
+      if (this[k]) {
+        this[k] = v;
+      }
+    };
     const res = this.generateContent(obj);
     this.history.push(obj);
     this.history.push(res.candidates[0].content);

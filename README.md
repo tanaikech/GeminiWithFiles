@@ -1702,4 +1702,10 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. The default model was changed from `models/gemini-2.0-flash` to `models/gemini-2.5-flash-preview-04-17`.
 
+<a name="v208"></a>
+
+- v2.0.8 (May 14, 2025)
+
+  1. Bugs for function calling were removed.
+
 [TOP](#top)
