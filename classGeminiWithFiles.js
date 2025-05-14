@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.8
+ * GeminiWithFiles v2.0.9
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -509,9 +509,11 @@ class GeminiWithFiles {
       const partsAr = (candidates && candidates[0]?.content?.parts) || [];
       results.push(...partsAr);
       contents.push({ parts: partsAr.slice(), role: "model" });
-      // check = partsAr.find((o) => o.hasOwnProperty("functionCall"));
-      check = partsAr[partsAr.length - 1].hasOwnProperty("functionCall");
-      if (check && check.functionCall?.name) {
+      if (!payload.contents[payload.contents.length - 1].parts.some(pp => pp.functionCall)) {
+        break;
+      }
+      check = partsAr[partsAr.length - 1];
+      if (check.hasOwnProperty("functionCall") && check.functionCall?.name) {
         const functionName = check.functionCall.name;
         const res2 = this.functions[functionName](
           check.functionCall.args || null
@@ -530,6 +532,7 @@ class GeminiWithFiles {
         partsAr.push({ functionResponse: res2 });
         results.push(...partsAr);
         this.history = contents;
+        check = false;
         if (/^customType_.*/.test(functionName)) {
           if (res2.hasOwnProperty("items") && Object.keys(e).length == 1) {
             return res2.items;
@@ -554,7 +557,7 @@ class GeminiWithFiles {
       console.warn(output);
       return "No values.";
     }
-    const returnValue = output.text.trim();
+    const returnValue = output.text ? output.text.trim() : output;
     try {
       if (this.exportTotalTokens) {
         return { returnValue: JSON.parse(returnValue), usageMetadata: usageMetadataObj };

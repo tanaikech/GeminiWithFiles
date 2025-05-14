@@ -1708,4 +1708,10 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. Bugs for function calling were removed.
 
+<a name="v208"></a>
+
+- v2.0.9 (May 14, 2025)
+
+  1. Bugs for function calling were removed.
+
 [TOP](#top)
