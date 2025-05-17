@@ -34,6 +34,8 @@ By streamlining the process and expanding capabilities, GeminiWithFiles holds pr
 
 I created this library based on the following reports.
 
+## Applications
+
 - [Automatically Creating Descriptions of Files on Google Drive using Gemini Pro API with Google Apps Script](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)
 - [Categorization using Gemini Pro API with Google Apps Script](https://medium.com/google-cloud/categorization-using-gemini-pro-api-with-google-apps-script-804df0101161)
 - [Guide to Function Calling with Gemini and Google Apps Script](https://medium.com/google-cloud/guide-to-function-calling-with-gemini-and-google-apps-script-0e058d472f45)
@@ -46,6 +48,19 @@ I created this library based on the following reports.
 - [Gemini API with JSON schema](https://medium.com/google-cloud/gemini-api-with-json-schema-3dbdabac7d19)
 - [Taming the Wild Output: Effective Control of Gemini API Response Formats with response_schema](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-schema-ae0097b97502)
 - [Harnessing Gemini’s Power: A Guide to Generating Content from Structured Data](https://medium.com/google-cloud/harnessing-geminis-power-a-guide-to-generating-content-from-structured-data-45080dac0bbb)
+- [Streamlining Gmail Processing Including Attachment Files Using Gemini with Google Apps Script](https://medium.com/google-cloud/streamlining-gmail-processing-including-attachment-files-using-gemini-with-google-apps-script-ce4078abb6bf)
+- [Generate Images with Gemini API using Google Apps Script](https://medium.com/google-cloud/generate-images-with-gemini-api-using-google-apps-script-a7c04c0a4843)
+- [Create Visualized Recipe Instructions with Gemini using Google Apps Script](https://medium.com/google-cloud/create-visualized-recipe-instructions-with-gemini-using-google-apps-script-3f9e3fcb9a0b)
+- [Generate Growing Images using Gemini API](https://medium.com/google-cloud/generate-growing-images-using-gemini-api-3de7638e47fd)
+- [Roadmap Generator as Gemini](https://medium.com/google-cloud/roadmap-generator-as-gemini-e4a82d7764ad)
+- [Stowage Planning Automation Using Gemini: A Feasibility Study and A Prompt-Based Approach](https://medium.com/google-cloud/stowage-planning-automation-using-gemini-a-feasibility-study-and-a-prompt-based-approach-af8dd264e35d)
+- [Integrating Gemini and Google Apps Script for Automated Google Slides Presentations](https://medium.com/google-cloud/integrating-gemini-and-google-apps-script-for-automated-google-slides-presentations-626eedc83166)
+
+## Standardization protocols in the AI ecosystem
+
+- [Building Model Context Protocol (MCP) Server with Google Apps Script](https://medium.com/google-cloud/building-model-context-protocol-mcp-server-with-google-apps-script-9ff1fe58653c)
+- [Image Transfer: MCP Server (Web Apps/Google Apps Script) to MCP Client (Gemini/Python)](https://medium.com/google-cloud/image-transfer-mcp-server-web-apps-google-apps-script-to-mcp-client-gemini-python-1fb22eb89dd2)
+- [Building Agent2Agent (A2A) Server with Google Apps Script](https://medium.com/google-cloud/building-agent2agent-a2a-server-with-google-apps-script-d3efd32c7ca7)
 
 # Features
 
