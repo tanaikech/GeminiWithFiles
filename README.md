@@ -597,6 +597,62 @@ function myFunction_functionCalling() {
 
 This sample function is from [this post](https://medium.com/google-cloud/guide-to-function-calling-with-gemini-and-google-apps-script-0e058d472f45).
 
+On May 17, 2025, the following sample script was added.
+
+```javascript
+function myFunction_functionCalling() {
+  const apiKey = "###"; // Please set your API key.
+  const model = "models/gemini-2.0-flash"; // and "models/gemini-2.5-flash-preview-04-17"
+
+  const q = "Exchange 10,000 yen to US Dollars with current rate.";
+
+  const functions = {
+    params_: {
+      get_exchange_rate: {
+        description: "Use this to get current exchange rate.",
+        parameters: {
+          type: "object",
+          properties: {
+            currency_from: {
+              type: "string",
+              description: "Source currency. Default is USD."
+            },
+            currency_to: {
+              type: "string",
+              description: "Destination currency. Default is EUR."
+            },
+            currency_date: {
+              type: "string",
+              description: "Date of the currency. Default is latest."
+            }
+          },
+          required: ["currency_from", "currency_to", "currency_date"]
+        }
+      },
+    },
+
+    /**
+     * Ref: https://github.com/google/A2A/blob/main/samples/python/agents/langgraph/agent.py#L19
+     */
+    get_exchange_rate: ({ currency_from, currency_to, currency_date }) => JSON.parse(UrlFetchApp.fetch(`https://api.frankfurter.app/${currency_date}?from=${currency_from}&to=${currency_to}`).getContentText()),
+  };
+  const g = new GeminiWithFiles.geminiWithFiles({ apiKey, functions, model });
+  const res1 = g.generateContent({ q });
+  console.log(res1.functionResponse); // {"amount":1,"base":"JPY","date":"2025-05-16","rates":{"USD":0.00687}}
+
+  g.functions = [];
+  const res2 = g.generateContent({ q });
+  console.log(res2); // OK. With the current exchange rate of 1 JPY to 0.00687 USD, 10,000 yen would be approximately $68.70.
+}
+```
+
+When this script is run, `res1` and `res2` are as follows.
+
+  - `res1`: `{"amount":1,"base":"JPY","date":"2025-05-16","rates":{"USD":0.00687}}`
+  - `res2`: `OK. With the current exchange rate of 1 JPY to 0.00687 USD, 10,000 yen would be approximately $68.70.`.
+
+For `res1`, the `get_exchange_rate` function is called based on the question, and its result is retrieved. For `res2`, the response is generated using the result from the function call and the question. This flow is fundamental for building AI agents that can interact with external systems and data.
+
 ### Return raw data
 
 When you want to return the raw data from Gemini API, you can also use the following sample script.
