@@ -1877,4 +1877,10 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. Implemented the parallel function calling. [Ref](#parallelfunctioncalling)
 
+<a name="v2010"></a>
+
+- v2.0.11 (May 21, 2025)
+
+  1. Removed a bug.
+
 [TOP](#top)

@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.10
+ * GeminiWithFiles v2.0.11
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -519,25 +519,20 @@ class GeminiWithFiles {
         if (lenCheck != 1) {
           multipleResults = true;
         }
+        const partss = [];
         for (let it = 0; it < check.length; it++) {
           const functionName = check[it].functionCall.name;
           const res2 = this.functions[functionName](
             check[it].functionCall.args || null
           );
-          contents.push({
-            parts: [
-              {
-                functionResponse: {
-                  name: functionName,
-                  response: { name: functionName, content: res2 },
-                },
-              },
-            ],
-            role: "function",
+          partss.push({
+            functionResponse: {
+              name: functionName,
+              response: { name: functionName, content: res2 },
+            },
           });
           partsAr.push({ functionResponse: res2 });
           results = [...partsAr];
-          this.history = contents;
 
           if (/^customType_.*/.test(functionName)) {
             if (res2.hasOwnProperty("items") && Object.keys(e).length == 1) {
@@ -549,6 +544,9 @@ class GeminiWithFiles {
           }
 
         }
+        contents.push({ parts: partss, role: "function" });
+        this.history = contents;
+
         check = [];
       } else {
         this.history = contents;
