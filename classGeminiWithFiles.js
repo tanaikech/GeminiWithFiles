@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.9
+ * GeminiWithFiles v2.0.10
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -424,10 +424,11 @@ class GeminiWithFiles {
     } else {
       contents.push({ parts: [{ text: q }, ...files], role: "user" });
     }
-    let check = true;
+    let check = [];
     let usageMetadataObj;
-    const results = [];
+    let results = [];
     let rawResult = {};
+    let multipleResults = false;
     const url = this.addQueryParameters_(this.urlGenerateContent, this.queryParameters);
     do {
       retry--;
@@ -512,43 +513,51 @@ class GeminiWithFiles {
       if (!payload.contents[payload.contents.length - 1].parts.some(pp => pp.functionCall)) {
         break;
       }
-      check = partsAr[partsAr.length - 1];
-      if (check.hasOwnProperty("functionCall") && check.functionCall?.name) {
-        const functionName = check.functionCall.name;
-        const res2 = this.functions[functionName](
-          check.functionCall.args || null
-        );
-        contents.push({
-          parts: [
-            {
-              functionResponse: {
-                name: functionName,
-                response: { name: functionName, content: res2 },
-              },
-            },
-          ],
-          role: "function",
-        });
-        partsAr.push({ functionResponse: res2 });
-        results.push(...partsAr);
-        this.history = contents;
-        check = false;
-        if (/^customType_.*/.test(functionName)) {
-          if (res2.hasOwnProperty("items") && Object.keys(e).length == 1) {
-            return res2.items;
-          } else if (Array.isArray(res2) && res2.every(e => e.hasOwnProperty("items") && Object.keys(e).length == 1)) {
-            return res2.map(e => e.items || e);
-          }
-          return res2;
+      check = partsAr.filter(pp => pp.functionCall && pp.functionCall.name);
+      const lenCheck = check.length;
+      if (lenCheck > 0) {
+        if (lenCheck != 1) {
+          multipleResults = true;
         }
+        for (let it = 0; it < check.length; it++) {
+          const functionName = check[it].functionCall.name;
+          const res2 = this.functions[functionName](
+            check[it].functionCall.args || null
+          );
+          contents.push({
+            parts: [
+              {
+                functionResponse: {
+                  name: functionName,
+                  response: { name: functionName, content: res2 },
+                },
+              },
+            ],
+            role: "function",
+          });
+          partsAr.push({ functionResponse: res2 });
+          results = [...partsAr];
+          this.history = contents;
+
+          if (/^customType_.*/.test(functionName)) {
+            if (res2.hasOwnProperty("items") && Object.keys(e).length == 1) {
+              return res2.items;
+            } else if (Array.isArray(res2) && res2.every(e => e.hasOwnProperty("items") && Object.keys(e).length == 1)) {
+              return res2.map(e => e.items || e);
+            }
+            return res2;
+          }
+
+        }
+        check = [];
       } else {
         this.history = contents;
       }
-    } while (check && retry > 0);
+    } while (check.length > 0 && retry > 0);
     if (this.exportRawData) {
       return rawResult;
     }
-    const output = results.pop();
+    const output = results[results.length - 1];
     if (
       !output ||
       (output.finishReason &&
@@ -557,7 +566,13 @@ class GeminiWithFiles {
       console.warn(output);
       return "No values.";
     }
-    const returnValue = output.text ? output.text.trim() : output;
+    let returnValue;
+    if (multipleResults) {
+      console.log("Multiple results are returned as an array.");
+      returnValue = results.filter(pp => pp.functionResponse);
+    } else {
+      returnValue = output.text ? output.text.trim() : output;
+    }
     try {
       if (this.exportTotalTokens) {
         return { returnValue: JSON.parse(returnValue), usageMetadata: usageMetadataObj };

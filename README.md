@@ -582,7 +582,10 @@ function myFunction() {
 }
 ```
 
+<a name="usefunctioncalling"></a>
+
 ### Use function calling
+
 When you want to use the function calling, you can use the following sample script.
 
 ```javascript
@@ -667,6 +670,89 @@ When this script is run, `res1` and `res2` are as follows.
   - `res2`: `OK. With the current exchange rate of 1 JPY to 0.00687 USD, 10,000 yen would be approximately $68.70.`.
 
 For `res1`, the `get_exchange_rate` function is called based on the question, and its result is retrieved. For `res2`, the response is generated using the result from the function call and the question. This flow is fundamental for building AI agents that can interact with external systems and data.
+
+<a name="parallelfunctioncalling"></a>
+
+#### Parallel Function Calling
+
+```javascript
+// The sample functions are from https://ai.google.dev/gemini-api/docs/function-calling?example=meeting#parallel_function_calling
+function myFunction_functionCalling() {
+  const apiKey = "###"; // Please set your API key.
+  const model = "models/gemini-2.0-flash"; // and "models/gemini-2.5-flash-preview-04-17"
+
+  const powerDiscoBall = {
+    name: 'power_disco_ball',
+    description: 'Powers the spinning disco ball.',
+    parameters: {
+      type: "object",
+      properties: {
+        power: {
+          type: "boolean",
+          description: 'Whether to turn the disco ball on or off.'
+        }
+      },
+      required: ['power']
+    }
+  };
+
+  const startMusic = {
+    name: 'start_music',
+    description: 'Play some music matching the specified parameters.',
+    parameters: {
+      type: "object",
+      properties: {
+        energetic: {
+          type: "boolean",
+          description: 'Whether the music is energetic or not.'
+        },
+        loud: {
+          type: "boolean",
+          description: 'Whether the music is loud or not.'
+        }
+      },
+      required: ['energetic', 'loud']
+    }
+  };
+
+  const dimLights = {
+    name: 'dim_lights',
+    description: 'Dim the lights.',
+    parameters: {
+      type: "object",
+      properties: {
+        brightness: {
+          type: "boolean",
+          description: 'The brightness of the lights, 0.0 is off, 1.0 is full.'
+        }
+      },
+      required: ['brightness']
+    }
+  };
+
+  const functions = {
+    params_: { powerDiscoBall, startMusic, dimLights },
+
+    powerDiscoBall: (args) => ["powerDiscoBall", args],
+    startMusic: (args) => ["startMusic", args],
+    dimLights: (args) => ["dimLights", args],
+  };
+
+  const g = new GeminiWithFiles.geminiWithFiles({ apiKey, model, functions });
+  const res = g.generateContent({ q: "Turn this place into a party!" });
+  console.log(res);
+}
+```
+
+When this script is run, the following result is returned.
+
+```json
+[
+  { "functionResponse": ["powerDiscoBall", { "power": true }] },
+  { "functionResponse": ["startMusic", { "energetic": true, "loud": true }] },
+  { "functionResponse": ["dimLights", { "brightness": false }] }
+]
+```
 
 ### Return raw data
 
@@ -1779,10 +1865,16 @@ I have already proposed the following future requests to the Google issue tracke
 
   1. Bugs for function calling were removed.
 
-<a name="v208"></a>
+<a name="v209"></a>
 
 - v2.0.9 (May 14, 2025)
 
   1. Bugs for function calling were removed.
+
+<a name="v2010"></a>
+
+- v2.0.10 (May 21, 2025)
+
+  1. Implemented the parallel function calling. [Ref](#parallelfunctioncalling)
 
 [TOP](#top)
