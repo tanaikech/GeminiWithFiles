@@ -5,7 +5,7 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.11
+ * GeminiWithFiles v2.0.12
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  */
 class GeminiWithFiles {
@@ -511,6 +511,7 @@ class GeminiWithFiles {
       results.push(...partsAr);
       contents.push({ parts: partsAr.slice(), role: "model" });
       if (!payload.contents[payload.contents.length - 1].parts.some(pp => pp.functionCall)) {
+        this.history = contents;
         break;
       }
       check = partsAr.filter(pp => pp.functionCall && pp.functionCall.name);
