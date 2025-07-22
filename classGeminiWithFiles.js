@@ -22,8 +22,8 @@ class GeminiWithFiles {
    * @param {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
    * @param {Array} object.history History for continuing chat.
    * @param {Array} object.functions If you want to give the custom functions, please use this.
-   * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
-   * @param {String} object.responseMimeType In the current stage, only "application/json" can be used.
+   * @param {String} object.response_mime_type In the current stage, "text/plain", "application/json", and "text/x.enum" can be used.
+   * @param {String} object.responseMimeType In the current stage, "text/plain", "application/json", and "text/x.enum" can be used.
    * @param {Object} object.response_schema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
    * @param {Object} object.responseSchema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
    * @param {Object} object.response_json_schema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/

@@ -20,8 +20,8 @@ var appName = "GeminiWithFiles";
  * {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
  * {Array} object.history History for continuing chat.
  * {Array} object.functions If you want to give the custom functions, please use this.
- * {String} object.response_mime_type In the current stage, only "application/json" can be used.
- * {String} object.responseMimeType In the current stage, only "application/json" can be used.
+ * {String} object.response_mime_type In the current stage, "text/plain", "application/json", and "text/x.enum" can be used.
+ * {String} object.responseMimeType In the current stage, "text/plain", "application/json", and "text/x.enum" can be used.
  * {Object} object.response_schema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
  * {Object} object.responseSchema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
  * {Object} object.response_json_schema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
