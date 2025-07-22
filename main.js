@@ -15,11 +15,26 @@ var appName = "GeminiWithFiles";
  * {Object} object API key or access token for using Gemini API.
  * {String} object.apiKey API key.
  * {String} object.accessToken Access token.
- * {String} object.model Model. Default is "models/gemini-2.5-flash-preview-04-17".
+ * {String} object.model Model. Default is "models/gemini-2.5-flash".
  * {String} object.version Version of API. Default is "v1beta".
  * {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
  * {Array} object.history History for continuing chat.
  * {Array} object.functions If you want to give the custom functions, please use this.
+ * {String} object.response_mime_type In the current stage, only "application/json" can be used.
+ * {String} object.responseMimeType In the current stage, only "application/json" can be used.
+ * {Object} object.response_schema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+ * {Object} object.responseSchema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+ * {Object} object.response_json_schema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
+ * {Object} object.responseJsonSchema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
+ * {Number} object.temperature Control the randomness of the output.
+ * {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
+ * {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
+ * {Boolean} object.exportRawData The default value is false. When this is true, the raw data returned from Gemini API is returned.
+ * {Object} object.toolConfig The default is null. If you want to directly give the object of "toolConfig", please use this.
+ * {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
+ * {PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
+ * {Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
+ * {Object} object.generationConfig The default is {}. The properties of GenerationConfig can be seen at https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
  * ```
  * 
  * @param {Object} object API key or access token for using Gemini API.
@@ -126,6 +141,22 @@ function deleteFiles(names, n = 50) {
 function generateContent(object) {
   return this.geminiWithFiles.generateContent(object);
 }
+
+/**
+ * Development suspended on 20250722
+ * ref: https://issuetracker.google.com/issues/431365432
+ */
+// /**
+//  * ### Description
+//  * This method is used for generating content by the batch requests.
+//  * ref: https://ai.google.dev/gemini-api/docs/batch-mode
+//  * 
+//  * @param {Object} obj Object for generating content by the batch requests.
+//  * @return {Object} Response value as an object.
+//  */
+// function batchGenerateContent(object) {
+//   return this.geminiWithFiles.batchGenerateContent(object);
+// }
 
 /**
  * ### Description

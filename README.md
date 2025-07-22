@@ -184,15 +184,17 @@ The value of `object` is as follows.
 {Object} object API key or access token for using Gemini API.
 {String} object.apiKey API key.
 {String} object.accessToken Access token.
-{String} object.model Model. Default is "models/gemini-1.5-pro-latest".
+{String} object.model Model. Default is "models/gemini-2.5-flash".
 {String} object.version Version of API. Default is "v1beta".
 {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
 {Array} object.history History for continuing chat.
 {Array} object.functions If you want to give the custom functions, please use this.
 {String} object.response_mime_type In the current stage, only "application/json" can be used.
 {String} object.responseMimeType In the current stage, only "application/json" can be used.
-{Object} object.response_schema JSON schema for controlling the output format.
-{Object} object.responseSchema JSON schema for controlling the output format.
+{Object} object.response_schema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+{Object} object.responseSchema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+{Object} object.response_json_schema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
+{Object} object.responseJsonSchema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
 {Number} object.temperature Control the randomness of the output.
 {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
 {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
@@ -201,14 +203,14 @@ The value of `object` is as follows.
 {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
 {PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
 {Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
-{Object} object.generationConfig The default is {}. When you use the specific prpperties of response_mime_type, response_schema, and temperature, those are used to generationConfig.
+{Object} object.generationConfig The default is {}. The properties of GenerationConfig can be seen at https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
 ````
 
 - When you want to use `response_mime_type`, please give `jsonSchema` to generateContent method. In the current stage, only `"application/json"` can be used to `response_mime_type`.
 
 - When you want to use `systemInstruction`, please confirm the official document [Ref](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini).
 
-- Gemini 1.5 Flash Latest (`models/gemini-1.5-flash-latest`) is used as the default model. When you want to use Gemini 1.5 Pro Latest (`models/gemini-1.5-pro-latest`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-1.5-pro-latest" })`.
+- `models/gemini-2.5-flash` is used as the default model. When you want to use Gemini 2.5 Pro (`models/gemini-2.5-pro`), please use it like `const g = GeminiWithFiles.geminiWithFiles({ apiKey, model: "models/gemini-2.5-pro" })`.
 
 - In the current stage, when `response_schema` is used, `response_mime_type: "application/json"` is automatically used.
 
@@ -1888,5 +1890,10 @@ I have already proposed the following future requests to the Google issue tracke
 - v2.0.12 (May 24, 2025)
 
   1. Removed a bug.
+
+- v2.0.13 (July 22, 2025)
+
+  1. `responseJsonSchema` was added.
+  2. The default model was changed from `models/gemini-2.5-flash-preview-04-17` to `models/gemini-2.5-flash`.
 
 [TOP](#top)

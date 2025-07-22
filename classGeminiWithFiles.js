@@ -5,8 +5,10 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.12
+ * GeminiWithFiles v2.0.13
+ * 20250722 10:39
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
+ * 
  */
 class GeminiWithFiles {
 
@@ -15,15 +17,17 @@ class GeminiWithFiles {
    * @param {Object} object API key or access token for using Gemini API.
    * @param {String} object.apiKey API key.
    * @param {String} object.accessToken Access token.
-   * @param {String} object.model Model. Default is "models/gemini-2.5-flash-preview-04-17".
+   * @param {String} object.model Model. Default is "models/gemini-2.5-flash".
    * @param {String} object.version Version of API. Default is "v1beta".
    * @param {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
    * @param {Array} object.history History for continuing chat.
    * @param {Array} object.functions If you want to give the custom functions, please use this.
    * @param {String} object.response_mime_type In the current stage, only "application/json" can be used.
    * @param {String} object.responseMimeType In the current stage, only "application/json" can be used.
-   * @param {Object} object.response_schema JSON schema for controlling the output format.
-   * @param {Object} object.responseSchema JSON schema for controlling the output format.
+   * @param {Object} object.response_schema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+   * @param {Object} object.responseSchema JSON schema for controlling the output format. For OpenAPI schema. https://spec.openapis.org/oas/v3.0.3#schema
+   * @param {Object} object.response_json_schema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
+   * @param {Object} object.responseJsonSchema JSON schema for controlling the output format. For JSON Schema. https://json-schema.org/
    * @param {Number} object.temperature Control the randomness of the output.
    * @param {Object} object.systemInstruction Ref: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini.
    * @param {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value. At that time, the generated content and the total tokens are returned as an object.
@@ -32,17 +36,18 @@ class GeminiWithFiles {
    * @param {Array} object.tools The default value is null. For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
    * @param {PropertiesService.Properties} object.propertiesService PropertiesService.getScriptProperties()
    * @param {Boolean} object.resumableUploadAsNewUpload When you want to upload the data with the resumable upload as new upload, please set this as true. The default is false.
-   * @param {Object} object.generationConfig The default is {}. When you use the specific prpperties of response_mime_type, response_schema, and temperature, those are used to generationConfig.
+   * @param {Object} object.generationConfig The default is {}. The properties of GenerationConfig can be seen at https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
    * 
    */
   constructor(object = {}) {
-    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
+    const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, response_json_schema = null, responseJsonSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
 
     /** @private */
-    this.model = model || "models/gemini-2.5-flash-preview-04-17";
+    this.model = model || "models/gemini-2.5-flash";
     // After v2.0.0, the default model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
     // After v2.0.5, the default model was changed from "models/gemini-1.5-flash-latest" to "models/gemini-2.0-flash".
     // After v2.0.7, the default model was changed from "models/gemini-2.0-flash" to "models/gemini-2.5-flash-preview-04-17".
+    // After v2.0.13, the default model was changed from "models/gemini-2.5-flash-preview-04-17" to "models/gemini-2.5-flash".
 
     /** @private */
     this.version = version || "v1beta";
@@ -51,6 +56,9 @@ class GeminiWithFiles {
 
     /** @private */
     this.urlGenerateContent = `${baseUrl}/${this.version}/${this.model}:generateContent`;
+
+    /** @private */
+    this.urlBatchGenerateContent = `${baseUrl}/${this.version}/${this.model}:batchGenerateContent`;
 
     /** @private */
     this.urlUploadFile = `${baseUrl}/upload/${this.version}/files`;
@@ -117,6 +125,10 @@ class GeminiWithFiles {
     if ((response_schema && typeof response_schema == "object") || (responseSchema && typeof responseSchema == "object")) {
       this.response_schema = response_schema || responseSchema;
     }
+    if ((response_json_schema && typeof response_json_schema == "object") || (responseJsonSchema && typeof responseJsonSchema == "object")) {
+      this.response_json_schema = response_json_schema || responseJsonSchema;
+    }
+
     this.temperature = temperature === null ? null : temperature;
 
     if (functions && functions.params_) {
@@ -443,6 +455,9 @@ class GeminiWithFiles {
       if (this.response_schema) {
         payload.generationConfig.response_schema = this.response_schema;
         payload.generationConfig.response_mime_type = "application/json";
+      } else if (this.response_json_schema) {
+        payload.generationConfig.response_json_schema = this.response_json_schema;
+        payload.generationConfig.response_mime_type = "application/json";
       }
       if (this.temperature !== null) {
         payload.generationConfig.temperature = this.temperature;
@@ -606,6 +621,68 @@ class GeminiWithFiles {
     this.history.push(res.candidates[0].content);
     return res;
   }
+
+  /**
+   * Development suspended on 20250722
+   * ref: https://issuetracker.google.com/issues/431365432
+   */
+  /**
+   * ### Description
+   * This method is used for generating content by the batch requests.
+   * ref: https://ai.google.dev/gemini-api/docs/batch-mode
+   * 
+   * @param {Object} obj Object for generating content by the batch requests.
+   * @return {Object} Response value as an object.
+   */
+  batchGenerateContent(object = {}) {
+    const { requests = [] } = object;
+    if (requests.length > 0) {
+      const reqs = requests.reduce((ar, r, i) => {
+        const n = i + 1;
+        if (typeof r == "object" && r.hasOwnProperty("contents")) {
+          ar.push(JSON.stringify({ key: `request-${n}`, request: r }));
+        } else if (typeof r == "string") {
+          ar.push(JSON.stringify({ key: `request-${n}`, request: { contents: [{ parts: [{ text: r }] }] } }));
+        }
+        return ar;
+      }, []);
+      if (reqs.length > 0) {
+        const filename = "my - batch - requests";
+        console.log(reqs.join("\n"))
+        const blob = Utilities.newBlob(reqs.join("\n"), MimeType.PLAIN_TEXT, filename);
+        let oo = this.setBlobs([blob]).uploadFiles();
+        console.log(oo[0])
+        let [{ name, state, displayName, uri }] = oo;
+        console.log({ name, state, displayName }) // check
+        while (state != "ACTIVE") {
+          Utilities.sleep(2000);
+          const f = this.getFileList().find(e => e.name == name);
+          state = f.state;
+        }
+
+        const payload = { batch: { display_name: filename, input_config: { requests: { file_name: name } } } };
+        const reqObj = {
+          url: this.urlBatchGenerateContent,
+          method: "post",
+          headers: { "x-goog-api-key": this.queryParameters.key },
+          contentType: "application/json",
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true,
+        };
+        console.log(JSON.stringify(reqObj)) // check
+        const res = this.fetch_(reqObj);
+        console.log(res.getContentText()) // check
+
+      } else {
+        throw new Error("No requests for the batch request.");
+      }
+
+
+    } else {
+      throw new Error("No requests for the batch request.");
+    }
+  }
+
 
   /**
    * ### Description
