@@ -5,8 +5,8 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  * 
- * GeminiWithFiles v2.0.13
- * 20250722 10:39
+ * GeminiWithFiles v2.0.14
+ * 20260101 11:30
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  * 
  */
@@ -43,11 +43,12 @@ class GeminiWithFiles {
     const { apiKey, accessToken, model, version, doCountToken, history, functions, response_mime_type, responseMimeType, response_schema = null, responseSchema = null, response_json_schema = null, responseJsonSchema = null, temperature = null, systemInstruction, exportTotalTokens, exportRawData, toolConfig, tools, propertiesService, resumableUploadAsNewUpload = false, generationConfig = {} } = object;
 
     /** @private */
-    this.model = model || "models/gemini-2.5-flash";
+    this.model = model || "models/gemini-3-flash-preview";
     // After v2.0.0, the default model was changed from "models/gemini-1.5-pro-latest" to "models/gemini-1.5-flash-latest".
     // After v2.0.5, the default model was changed from "models/gemini-1.5-flash-latest" to "models/gemini-2.0-flash".
     // After v2.0.7, the default model was changed from "models/gemini-2.0-flash" to "models/gemini-2.5-flash-preview-04-17".
     // After v2.0.13, the default model was changed from "models/gemini-2.5-flash-preview-04-17" to "models/gemini-2.5-flash".
+    // After v2.0.14, the default model was changed from "models/gemini-2.5-flash" to "models/gemini-3-flash-preview".
 
     /** @private */
     this.version = version || "v1beta";
