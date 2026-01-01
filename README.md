@@ -1898,6 +1898,6 @@ I have already proposed the following future requests to the Google issue tracke
 
 - v2.0.14 (January 1, 2026)
 
-  1. The default model was changed from  `models/gemini-2.5-flash` to "models/gemini-3-flash-preview".
+  1. The default model was changed from  `models/gemini-2.5-flash` to `models/gemini-3-flash-preview`.
 
 [TOP](#top)
