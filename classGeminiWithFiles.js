@@ -5,8 +5,8 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  *
- * GeminiWithFiles v2.0.15
- * 20260505
+ * GeminiWithFiles v2.0.16
+ * 20260507
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  *
  */
@@ -186,6 +186,29 @@ class GeminiWithFiles {
         );
       };
 
+      // Register invoke_agent function for Agent Skills (Subagent Executor)
+      this.functions.params_.invoke_agent = {
+        description:
+          "Delegates a sub-task to a specialized subagent. Returns the final response from the subagent.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            agent_name: {
+              type: "STRING",
+              description: "The name of the specialized skill or subagent.",
+            },
+            prompt: {
+              type: "STRING",
+              description: "The detailed prompt or sub-task description.",
+            },
+          },
+          required: ["agent_name", "prompt"],
+        },
+      };
+      this.functions.invoke_agent = (args) => {
+        return this._invokeAgent(args.agent_name, args.prompt);
+      };
+
       // Merge and prepare systemInstruction
       let systemInstructionText = "";
       if (systemInstruction) {
@@ -204,7 +227,7 @@ class GeminiWithFiles {
       const skillList = Object.values(skills)
         .map((s) => `- ${s.name}: ${s.description}`)
         .join("\n");
-      systemInstructionText += `You are a highly capable AI agent. To solve the user's request, the following skills are available.\n\n[Available Skills]\n${skillList}\n\nCall 'activate_skill' if necessary to reveal detailed instructions for a skill. You can also use 'read_skill_resource' or 'run_dynamic_script' if instructed by the active skill. Respond directly to the user after using tools.`;
+      systemInstructionText += `You are a highly capable AI agent. To solve the user's request, the following skills are available.\n\n[Available Skills]\n${skillList}\n\nCall 'activate_skill' if necessary to reveal detailed instructions for a skill. You can also use 'invoke_agent' to delegate sub-tasks to specialized subagents. You can also use 'read_skill_resource' or 'run_dynamic_script' if instructed by the active skill. Respond directly to the user after using tools.`;
 
       /** @private */
       this.systemInstruction = {
@@ -946,7 +969,7 @@ class GeminiWithFiles {
   _activateSkill(skillName) {
     const skills = this._discoverSkills();
     const skill = skills[skillName];
-    if (!skill) throw new Error(`Skill '${skillName}' not found.`);
+    if (!skill) return `[Error] Skill '${skillName}' not found.`;
 
     const files = DriveApp.getFolderById(skill.folderId).getFiles();
     const fileNames = [];
@@ -969,13 +992,13 @@ class GeminiWithFiles {
   _readSkillResource(skillName, fileName) {
     const skills = this._discoverSkills();
     const skill = skills[skillName];
-    if (!skill) throw new Error(`Skill '${skillName}' not found.`);
+    if (!skill) return `[Error] Skill '${skillName}' not found.`;
 
     const files = DriveApp.getFolderById(skill.folderId).getFilesByName(
       fileName,
     );
     if (!files.hasNext())
-      throw new Error(`File '${fileName}' not found in skill '${skillName}'.`);
+      return `[Error] File '${fileName}' not found in skill '${skillName}'.`;
 
     return files.next().getBlob().getDataAsString();
   }
@@ -992,6 +1015,7 @@ class GeminiWithFiles {
    */
   _runDynamicScript(skillName, scriptName, argsJSON) {
     const scriptContent = this._readSkillResource(skillName, scriptName);
+    if (scriptContent.startsWith("[Error]")) return scriptContent;
     try {
       const parsedArgs =
         typeof argsJSON === "string" ? JSON.parse(argsJSON) : argsJSON;
@@ -999,6 +1023,54 @@ class GeminiWithFiles {
       return executableFunc(parsedArgs);
     } catch (e) {
       return `Script Execution Error: ${e.message}`;
+    }
+  }
+
+  /**
+   * ### Description
+   * Delegate a sub-task to a specialized subagent.
+   * This creates a new independent Executor (GeminiWithFiles instance) internally.
+   *
+   * @private
+   * @param {String} agentName Name of the subagent skill.
+   * @param {String} prompt Prompt for the subagent.
+   * @returns {String} Execution result from the subagent.
+   */
+  _invokeAgent(agentName, prompt) {
+    const skills = this._discoverSkills();
+    const subSkill = skills[agentName];
+    if (!subSkill) return `[Error] Subagent skill '${agentName}' not found.`;
+
+    try {
+      // Isolate context by giving it ONLY its specific subagent instructions
+      // The constructor will automatically append the list of all skills so the subagent can further self-delegate
+      const subagentSystemInstruction = `[SUBAGENT ROLE: ${agentName}]\nInstructions for this role:\n${subSkill.instructions}\n\n`;
+
+      const options = {
+        model: this.model, // Fixed: Pass model string exactly as-is to preserve API requirement.
+        version: this.version,
+        systemInstruction: subagentSystemInstruction,
+        skillFolderId: this.skillFolderId,
+        propertiesService: this.propertiesService,
+        temperature: this.temperature,
+        generationConfig: this.generationConfig,
+      };
+
+      if (this.queryParameters.key) options.apiKey = this.queryParameters.key;
+      if (this.accessToken && !this.queryParameters.key)
+        options.accessToken = this.accessToken;
+
+      const subagent = new GeminiWithFiles(options);
+
+      console.log(`[Agent Orchestration] Invoking Subagent: ${agentName}...`);
+      const res = subagent.generateContent({ q: prompt });
+      console.log(
+        `[Agent Orchestration] Subagent ${agentName} execution finished.`,
+      );
+
+      return typeof res === "string" ? res : JSON.stringify(res);
+    } catch (e) {
+      return `[Error] Subagent execution failed: ${e.message}`;
     }
   }
 

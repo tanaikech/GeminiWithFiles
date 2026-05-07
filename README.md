@@ -5,7 +5,7 @@
 
 # IMPORTANT
 
-Gemini API is continually growing and evolving. With the release of GeminiWithFiles v2.x.x (and the latest v2.0.15), the library has undergone major updates, including support for the latest **Gemini 3.0 Flash Preview** model and **Agent Skills** (Progressive Disclosure architecture).
+Gemini API is continually growing and evolving. With the release of GeminiWithFiles v2.x.x (and the latest v2.0.16), the library has undergone major updates, including support for the latest **Gemini 3.0 Flash Preview** model and **Agent Skills** (Progressive Disclosure architecture and Subagent Orchestration).
 
 If you want to use the legacy GeminiWithFiles v1.x.x, please see [here](old_v1.x.x/README.md).
 
@@ -27,7 +27,7 @@ With the latest **Gemini 3.0** capabilities, the context window and multimodal p
 
 While Gemini does not natively parse Google Workspace proprietary formats (Docs, Sheets, Slides) directly, we can use workarounds like converting them to PDF and leveraging the Gemini API's direct PDF input features.
 
-**GeminiWithFiles** abstracts away the complexities of making direct REST API calls from Apps Script. It handles the nuances of multipart uploads, resumable uploads for large files (>50MB), token counting, and multi-turn chat context. More importantly, the latest version introduces **Agent Skills**, allowing developers to create dynamic, autonomous agent workflows where the model decides which tools to use, reads configurations from Google Drive, and dynamically executes JavaScript in your GAS environment. [Ref](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)
+**GeminiWithFiles** abstracts away the complexities of making direct REST API calls from Apps Script. It handles the nuances of multipart uploads, resumable uploads for large files (>50MB), token counting, and multi-turn chat context. More importantly, the latest version introduces **Agent Skills**, allowing developers to create dynamic, autonomous agent workflows where the model decides which tools to use, reads configurations from Google Drive, dynamically executes JavaScript in your GAS environment, and even delegates tasks to specialized subagents. [Ref](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)
 
 By simplifying implementation and broadening the scope of what Apps Script can do, GeminiWithFiles helps developers rapidly build AI-driven solutions across various domains with minimal boilerplate.
 
@@ -39,18 +39,29 @@ I created this library based on the concepts explored in my research and reports
 
 - [Automatically Creating Descriptions of Files on Google Drive using Gemini Pro API with Google Apps Script](https://medium.com/google-cloud/automatically-creating-descriptions-of-files-on-google-drive-using-gemini-pro-api-with-google-apps-7ef597a5b9fb)
 - [Categorization using Gemini Pro API with Google Apps Script](https://medium.com/google-cloud/categorization-using-gemini-pro-api-with-google-apps-script-804df0101161)
-- [Guide to Function Calling with Gemini and Google Apps Script](https://medium.com/google-cloud/guide-to-function-calling-with-gemini-and-google-apps-script-0e058d472f45) -[Creating Image Bot using Gemini with Google Apps Script](https://medium.com/google-cloud/creating-image-bot-using-gemini-with-google-apps-script-51457cce03d7)
-- [Crafting Bespoke Output Formats with Gemini API](https://medium.com/google-cloud/crafting-bespoke-output-formats-with-gemini-api-087b029d84d5)
-- [Generating Texts using Files Uploaded by Gemini 1.5 API](https://medium.com/google-cloud/generating-texts-using-files-uploaded-by-gemini-1-5-api-5777f1c902ab) -[Specifying Output Types for Gemini API with Google Apps Script](https://medium.com/google-cloud/specifying-output-types-for-gemini-api-with-google-apps-script-c2f6a753c8d7)
-- [Parsing Invoices using Gemini 1.5 API with Google Apps Script](https://medium.com/google-cloud/parsing-invoices-using-gemini-1-5-api-with-google-apps-script-1f32af1678f2) -[Taming the Wild Output: Effective Control of Gemini API Response Formats with response_mime_type](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
-- [Gemini API with JSON schema](https://medium.com/google-cloud/gemini-api-with-json-schema-3dbdabac7d19) -[Taming the Wild Output: Effective Control of Gemini API Response Formats with response_schema](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-schema-ae0097b97502) -[Harnessing Gemini’s Power: A Guide to Generating Content from Structured Data](https://medium.com/google-cloud/harnessing-geminis-power-a-guide-to-generating-content-from-structured-data-45080dac0bbb) -[Streamlining Gmail Processing Including Attachment Files Using Gemini with Google Apps Script](https://medium.com/google-cloud/streamlining-gmail-processing-including-attachment-files-using-gemini-with-google-apps-script-ce4078abb6bf)
+- [Guide to Function Calling with Gemini and Google Apps Script](https://medium.com/google-cloud/guide-to-function-calling-with-gemini-and-google-apps-script-0e058d472f45)
+- [Creating Image Bot using Gemini with Google Apps Script](https://medium.com/google-cloud/creating-image-bot-using-gemini-with-google-apps-script-51457cce03d7)
+- [Crafting Bespoke Output Formats with Gemini API](https://medium.com/google-cloud/crafting-bespoke-output-formats-with-gemini-api-087b029d84d5) -[Generating Texts using Files Uploaded by Gemini 1.5 API](https://medium.com/google-cloud/generating-texts-using-files-uploaded-by-gemini-1-5-api-5777f1c902ab)
+- [Specifying Output Types for Gemini API with Google Apps Script](https://medium.com/google-cloud/specifying-output-types-for-gemini-api-with-google-apps-script-c2f6a753c8d7)
+- [Parsing Invoices using Gemini 1.5 API with Google Apps Script](https://medium.com/google-cloud/parsing-invoices-using-gemini-1-5-api-with-google-apps-script-1f32af1678f2)
+- [Taming the Wild Output: Effective Control of Gemini API Response Formats with response_mime_type](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
+- [Gemini API with JSON schema](https://medium.com/google-cloud/gemini-api-with-json-schema-3dbdabac7d19)
+- [Taming the Wild Output: Effective Control of Gemini API Response Formats with response_schema](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-schema-ae0097b97502)
+- [Harnessing Gemini’s Power: A Guide to Generating Content from Structured Data](https://medium.com/google-cloud/harnessing-geminis-power-a-guide-to-generating-content-from-structured-data-45080dac0bbb)
+- [Streamlining Gmail Processing Including Attachment Files Using Gemini with Google Apps Script](https://medium.com/google-cloud/streamlining-gmail-processing-including-attachment-files-using-gemini-with-google-apps-script-ce4078abb6bf)
 - [Generate Images with Gemini API using Google Apps Script](https://medium.com/google-cloud/generate-images-with-gemini-api-using-google-apps-script-a7c04c0a4843)
-- [Create Visualized Recipe Instructions with Gemini using Google Apps Script](https://medium.com/google-cloud/create-visualized-recipe-instructions-with-gemini-using-google-apps-script-3f9e3fcb9a0b) -[Generate Growing Images using Gemini API](https://medium.com/google-cloud/generate-growing-images-using-gemini-api-3de7638e47fd) -[Roadmap Generator as Gemini](https://medium.com/google-cloud/roadmap-generator-as-gemini-e4a82d7764ad) -[Stowage Planning Automation Using Gemini: A Feasibility Study and A Prompt-Based Approach](https://medium.com/google-cloud/stowage-planning-automation-using-gemini-a-feasibility-study-and-a-prompt-based-approach-af8dd264e35d)
+- [Create Visualized Recipe Instructions with Gemini using Google Apps Script](https://medium.com/google-cloud/create-visualized-recipe-instructions-with-gemini-using-google-apps-script-3f9e3fcb9a0b)
+- [Generate Growing Images using Gemini API](https://medium.com/google-cloud/generate-growing-images-using-gemini-api-3de7638e47fd)
+- [Roadmap Generator as Gemini](https://medium.com/google-cloud/roadmap-generator-as-gemini-e4a82d7764ad)
+- [Stowage Planning Automation Using Gemini: A Feasibility Study and A Prompt-Based Approach](https://medium.com/google-cloud/stowage-planning-automation-using-gemini-a-feasibility-study-and-a-prompt-based-approach-af8dd264e35d)
 - [Integrating Gemini and Google Apps Script for Automated Google Slides Presentations](https://medium.com/google-cloud/integrating-gemini-and-google-apps-script-for-automated-google-slides-presentations-626eedc83166)
+- [A Developer’s Guide to Understanding Agent Skills: Implementing Progressive Disclosure in Google Apps Script](https://medium.com/google-cloud/a-developers-guide-to-understanding-agent-skills-7cb8d3d2ce91)
 
 ## Standardization protocols in the AI ecosystem
 
-- [Building Model Context Protocol (MCP) Server with Google Apps Script](https://medium.com/google-cloud/building-model-context-protocol-mcp-server-with-google-apps-script-9ff1fe58653c) -[Image Transfer: MCP Server (Web Apps/Google Apps Script) to MCP Client (Gemini/Python)](https://medium.com/google-cloud/image-transfer-mcp-server-web-apps-google-apps-script-to-mcp-client-gemini-python-1fb22eb89dd2) -[Building Agent2Agent (A2A) Server with Google Apps Script](https://medium.com/google-cloud/building-agent2agent-a2a-server-with-google-apps-script-d3efd32c7ca7)
+- [Building Model Context Protocol (MCP) Server with Google Apps Script](https://medium.com/google-cloud/building-model-context-protocol-mcp-server-with-google-apps-script-9ff1fe58653c)
+- [Image Transfer: MCP Server (Web Apps/Google Apps Script) to MCP Client (Gemini/Python)](https://medium.com/google-cloud/image-transfer-mcp-server-web-apps-google-apps-script-to-mcp-client-gemini-python-1fb22eb89dd2)
+- [Building Agent2Agent (A2A) Server with Google Apps Script](https://medium.com/google-cloud/building-agent2agent-a2a-server-with-google-apps-script-d3efd32c7ca7)
 
 # Features
 
@@ -60,8 +71,8 @@ This library allows you to interact with the Gemini API through an intuitive int
 - **Content Upload:** Supports diverse formats, including direct PDF processing, image handling, and conversion of Google Docs (Docs, Sheets, Slides) into PDFs for analysis. [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
 - **Chat Context & History Management:** Automatically handles conversation history, allowing for continuous multi-turn chatting.
 - **Multimodal Generation:** Pass text, files (images/PDFs), and complex instructions in a single request.
-- **Controlled Output Generation:** Enforce outputs to conform to specific formats using `response_mime_type` and JSON Schema to guarantee predictable data structures. [Ref](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
-- **Agent Skills (Autonomous Workflows):** Supports the progressive disclosure architecture. By pointing the library to a Google Drive folder (`skillFolderId`), the agent can autonomously discover tools, read configurations, and execute dynamic GAS scripts to solve user requests.
+- **Controlled Output Generation:** Enforce outputs to conform to specific formats using `response_mime_type` and JSON Schema to guarantee predictable data structures.[Ref](https://medium.com/google-cloud/taming-the-wild-output-effective-control-of-gemini-api-response-formats-with-response-mime-type-da273c08be85)
+- **Agent Skills (Autonomous Workflows):** Supports the progressive disclosure architecture. By pointing the library to a Google Drive folder (`skillFolderId`), the agent can autonomously discover tools, read configurations, execute dynamic GAS scripts, and delegate tasks to specialized subagents via `invoke_agent` to solve complex user requests.
 - **Tools & Grounding:** Built-in support for Google Search Grounding and Code Execution.
 
 # Usage
@@ -90,7 +101,7 @@ There are two ways to use this library:
 
 ### Method B: Copy and Paste
 
-If you prefer not to use external libraries, you can simply copy the contents of [`classGeminiWithFiles.js`](https://github.com/tanaikech/GeminiWithFiles/blob/master/classGeminiWithFiles.js) into your Apps Script project.
+If you prefer not to use external libraries, you can simply copy the contents of[`classGeminiWithFiles.js`](https://github.com/tanaikech/GeminiWithFiles/blob/master/classGeminiWithFiles.js) into your Apps Script project.
 
 # Scopes
 
@@ -520,7 +531,34 @@ function runAgentSkills() {
 }
 ```
 
-_(For a complete script demonstrating how to programmatically set up an Agent Skills folder, refer to `test2.js` in the repository.)_
+### 11. Agent Skills with Subagent Orchestration
+
+**New in v2.0.16:** You can now create specialized subagents. A parent agent can use the `invoke_agent` tool to delegate sub-tasks to another specialized skill (e.g., a "code-reviewer"). The subagent runs in a completely isolated context internally and returns its final analysis to the parent agent, keeping the main conversation uncluttered.
+
+```javascript
+function runAgentOrchestration() {
+  const apiKey = "YOUR_API_KEY";
+  const skillFolderId = "YOUR_AGENT_SKILLS_DRIVE_FOLDER_ID";
+
+  const g = GeminiWithFiles.geminiWithFiles({
+    apiKey,
+    skillFolderId,
+    temperature: 0.0,
+  });
+
+  // Example: 'lead-developer' skill will use 'invoke_agent' to pass the code to 'code-reviewer'
+  const prompt =
+    "Lead Developer, please check this function: 'function auth(pw) { return pw == \"admin123\"; }'";
+
+  // The library handles parent-child agent routing and isolated context execution automatically
+  const response = g.chat({ q: prompt });
+
+  console.log(
+    "Final Orchestrated Output:\n",
+    response.candidates[0].content.parts.map((p) => p.text).join("\n"),
+  );
+}
+```
 
 # IMPORTANT
 
@@ -645,5 +683,9 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
   3. Added the `skillFolderId` property to the `geminiWithFiles` constructor to automatically discover skills, register necessary functions (`activate_skill`, `read_skill_resource`, `run_dynamic_script`), and manage the autonomous execution loop.
   4. Added `run_dynamic_script` tool to dynamically execute `.js` scripts stored within the skill folders.
   5. Enhanced `generateContent` to fully support multi-turn function calling loops.
+
+- v2.0.16 (May 7, 2026)
+  1. Introduced `invoke_agent` functionality to Agent Skills.
+  2. Enabled subagent orchestration, allowing parent agents to spawn independent executing contexts (Subagents) for specialized tasks without polluting the main conversation history.
 
 [TOP](#top)
