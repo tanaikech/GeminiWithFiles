@@ -688,4 +688,7 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
   1. Introduced `invoke_agent` functionality to Agent Skills.
   2. Enabled subagent orchestration, allowing parent agents to spawn independent executing contexts (Subagents) for specialized tasks without polluting the main conversation history.
 
+- v2.0.17 (May 10, 2026)
+  1. A bug was removed.
+
 [TOP](#top)

@@ -5,8 +5,8 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  *
- * GeminiWithFiles v2.0.16
- * 20260507
+ * GeminiWithFiles v2.0.17
+ * 20260510
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  *
  */
@@ -247,15 +247,10 @@ class GeminiWithFiles {
       this.toolConfig = {
         ...this.toolConfig,
         functionCallingConfig: {
-          // If skillFolderId is specified, use "AUTO" to allow continuous self-directed tool usage
-          mode: this.skillFolderId ? "AUTO" : "ANY",
+          // Always use "AUTO" to allow the model to choose between tools and text.
+          mode: "AUTO",
         },
       };
-      // "allowedFunctionNames" can only be set when mode is "ANY"
-      if (!this.skillFolderId) {
-        this.toolConfig.functionCallingConfig.allowedFunctionNames =
-          functionKeys;
-      }
     }
 
     /**
@@ -609,6 +604,7 @@ class GeminiWithFiles {
     let results = [];
     let rawResult = {};
     let multipleResults = false;
+    let continueLoop = false;
     const url = this.addQueryParameters_(
       this.urlGenerateContent,
       this.queryParameters,
@@ -708,6 +704,10 @@ class GeminiWithFiles {
       // Check if the model's response contains any function calls
       check = partsAr.filter((pp) => pp.functionCall?.name);
 
+      continueLoop = false;
+      let hasCodeExecutionResult = partsAr.some((pp) => pp.codeExecutionResult);
+      let hasText = partsAr.some((pp) => pp.text);
+
       if (check.length > 0) {
         if (check.length > 1) multipleResults = true;
         const partss = [];
@@ -722,7 +722,8 @@ class GeminiWithFiles {
           partss.push({
             functionResponse: {
               name: functionName,
-              response: { result: res2 },
+              response: { name: functionName, content: res2 },
+              ...(chk.functionCall.id ? { id: chk.functionCall.id } : {}),
             },
           });
 
@@ -743,15 +744,25 @@ class GeminiWithFiles {
         // Push the function execution results as a new turn in the conversation
         contents.push({ parts: partss, role: "function" });
         this.history = contents;
-
-        // Do NOT break or clear 'check' here. The do-while loop will continue
-        // automatically because check.length > 0, sending the function results back to the model.
+        continueLoop = true;
+      } else if (hasCodeExecutionResult && !hasText) {
+        this.history = contents;
+        // Prompt the model to continue and provide the final answer
+        contents.push({
+          role: "user",
+          parts: [
+            {
+              text: "Please provide the final answer based on the code execution result.",
+            },
+          ],
+        });
+        continueLoop = true;
       } else {
         // No function calls found. The model provided a standard text/data response.
         this.history = contents;
-        break; // Exit the loop
+        continueLoop = false;
       }
-    } while (check.length > 0 && retry > 0);
+    } while (continueLoop && retry > 0);
 
     // If chat() or exportRawData is used, return the final raw API response
     if (this.exportRawData) {
@@ -946,6 +957,23 @@ class GeminiWithFiles {
             folderId: subFolder.getId(),
           };
         }
+      }
+    }
+
+    // Also check for plain text files directly in the skill folder
+    const txtFiles = folder.getFilesByType(MimeType.PLAIN_TEXT);
+    while (txtFiles.hasNext()) {
+      const txtFile = txtFiles.next();
+      const fileName = txtFile.getName();
+      if (fileName.endsWith(".txt")) {
+        const name = fileName.replace(".txt", "");
+        const content = txtFile.getBlob().getDataAsString();
+        skills[name] = {
+          name: name,
+          description: content.substring(0, 150),
+          instructions: content,
+          folderId: folder.getId(),
+        };
       }
     }
 
