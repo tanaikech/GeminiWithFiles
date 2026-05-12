@@ -5,12 +5,12 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  *
- * GeminiWithFiles v2.0.17
- * 20260510
+ * GeminiWithFiles v2.0.18
+ * 20260512
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  *
  */
-class GeminiWithFiles {
+var GeminiWithFiles = class GeminiWithFiles {
   /**
    *
    * @param {Object} object API key or access token for using Gemini API.
@@ -383,9 +383,9 @@ class GeminiWithFiles {
         };
         const file = this.asImage
           ? this.fetch_({
-              url: `https://drive.google.com/thumbnail?sz=w1500&id=${fileId}`,
-              headers: this.headers,
-            }).getBlob()
+            url: `https://drive.google.com/thumbnail?sz=w1500&id=${fileId}`,
+            headers: this.headers,
+          }).getBlob()
           : DriveApp.getFileById(fileId).getBlob();
         return {
           url,
@@ -705,8 +705,8 @@ class GeminiWithFiles {
       check = partsAr.filter((pp) => pp.functionCall?.name);
 
       continueLoop = false;
-      let hasCodeExecutionResult = partsAr.some((pp) => pp.codeExecutionResult);
-      let hasText = partsAr.some((pp) => pp.text);
+      let hasCodeExecutionResult = partsAr.some(pp => pp.codeExecutionResult);
+      let hasText = partsAr.some(pp => pp.text);
 
       if (check.length > 0) {
         if (check.length > 1) multipleResults = true;
@@ -723,7 +723,7 @@ class GeminiWithFiles {
             functionResponse: {
               name: functionName,
               response: { name: functionName, content: res2 },
-              ...(chk.functionCall.id ? { id: chk.functionCall.id } : {}),
+              ...(chk.functionCall.id ? { id: chk.functionCall.id } : {})
             },
           });
 
@@ -748,14 +748,7 @@ class GeminiWithFiles {
       } else if (hasCodeExecutionResult && !hasText) {
         this.history = contents;
         // Prompt the model to continue and provide the final answer
-        contents.push({
-          role: "user",
-          parts: [
-            {
-              text: "Please provide the final answer based on the code execution result.",
-            },
-          ],
-        });
+        contents.push({ role: "user", parts: [{ text: "Please provide the final answer based on the code execution result." }] });
         continueLoop = true;
       } else {
         // No function calls found. The model provided a standard text/data response.
