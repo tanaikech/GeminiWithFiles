@@ -5,8 +5,8 @@
  * from multiple images at once.
  * This significantly reduces workload and expands possibilities for using Gemini.
  *
- * GeminiWithFiles v2.0.18
- * 20260512
+ * GeminiWithFiles v2.0.19
+ * Date: 2026-05-12 15:30
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  *
  */
@@ -563,8 +563,7 @@ var GeminiWithFiles = class GeminiWithFiles {
           });
         }
         return acc;
-      },
-      [],
+      }, [],
     );
 
     const files = uploadedFiles.flatMap(({ files, mimeType, uri, name }) => {
@@ -605,6 +604,8 @@ var GeminiWithFiles = class GeminiWithFiles {
     let rawResult = {};
     let multipleResults = false;
     let continueLoop = false;
+    let toolCallHistory = new Set(); // Track tool calls to prevent infinite loops
+
     const url = this.addQueryParameters_(
       this.urlGenerateContent,
       this.queryParameters,
@@ -714,18 +715,17 @@ var GeminiWithFiles = class GeminiWithFiles {
 
         for (const chk of check) {
           const functionName = chk.functionCall.name;
-          const res2 = this.functions[functionName](
-            chk.functionCall.args || null,
-          );
+          const argsObj = chk.functionCall.args || null;
+          const sig = `${functionName}::${JSON.stringify(argsObj)}`;
 
-          // Wrap the result properly for the functionResponse role
-          partss.push({
-            functionResponse: {
-              name: functionName,
-              response: { name: functionName, content: res2 },
-              ...(chk.functionCall.id ? { id: chk.functionCall.id } : {})
-            },
-          });
+          let res2;
+          if (toolCallHistory.has(sig)) {
+            console.warn(`[GeminiWithFiles] Loop detected. Prevented duplicate call to ${functionName}.`);
+            res2 = `[System Intervention] You have already executed '${functionName}' with these exact arguments. Do not repeat this action. Please synthesize and provide your final answer immediately based on the information you have.`;
+          } else {
+            toolCallHistory.add(sig);
+            res2 = this.functions[functionName](argsObj);
+          }
 
           // Original compatibility logic for early returning custom types
           if (functionName.startsWith("customType_")) {
@@ -739,6 +739,15 @@ var GeminiWithFiles = class GeminiWithFiles {
             }
             return res2;
           }
+
+          // Wrap the result properly for the functionResponse role
+          partss.push({
+            functionResponse: {
+              name: functionName,
+              response: { name: functionName, content: res2 },
+              ...(chk.functionCall.id ? { id: chk.functionCall.id } : {})
+            },
+          });
         }
 
         // Push the function execution results as a new turn in the conversation
@@ -760,6 +769,11 @@ var GeminiWithFiles = class GeminiWithFiles {
     // If chat() or exportRawData is used, return the final raw API response
     if (this.exportRawData) {
       return rawResult;
+    }
+
+    // Guardrail: Explicitly throw an error if the model got stuck in an infinite loop and exhausted all retries
+    if (continueLoop && retry <= 0) {
+      throw new Error("GeminiWithFiles Error: Maximum retry limit exceeded during function calling. The model got stuck in a loop and failed to provide a final text response.");
     }
 
     const output = results[results.length - 1];
