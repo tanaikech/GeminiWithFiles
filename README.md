@@ -697,4 +697,7 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
 - v2.0.19 (May 12, 2026)
   1. A bug was removed.
 
+- v2.0.29 (May 15, 2026)
+  1. Several bugs were removed.
+
 [TOP](#top)
