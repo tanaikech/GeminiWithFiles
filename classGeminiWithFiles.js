@@ -1,8 +1,9 @@
 /**
- * GeminiWithFiles.js
- * [Resilience Update v2.0.29]
- * - Added `_gemini_halt` signal mechanism. Tools can now return `{ _gemini_halt: true, ... }` to immediately break the internal execution loop and return the state to the orchestrator, preventing unnecessary token consumption and redundant LLM generation cycles.
- * - External configurations and schemas remain perfectly backward compatible.
+ * GeminiWithFiles
+ * Author: Kanshi Tanaike
+ * Version: 2.0.29
+ * GitHub: https://github.com/tanaikech/GeminiWithFiles
+ * @class
  */
 var GeminiWithFiles = class GeminiWithFiles {
   constructor(object = {}) {
@@ -268,7 +269,11 @@ var GeminiWithFiles = class GeminiWithFiles {
       (acc, [k, v]) => {
         if (k !== "params_") {
           let parameters = this.functions.params_[k]?.parameters;
-          if (parameters && Array.isArray(parameters.required) && parameters.required.length === 0) {
+          if (
+            parameters &&
+            Array.isArray(parameters.required) &&
+            parameters.required.length === 0
+          ) {
             parameters = { ...parameters };
             delete parameters.required;
           }
@@ -438,7 +443,11 @@ var GeminiWithFiles = class GeminiWithFiles {
             }
 
             contents.push({
-              parts: [{ text: `[System Recovery] Attempted to implicitly execute function '${fnName}'. Result:\n${res2}` }],
+              parts: [
+                {
+                  text: `[System Recovery] Attempted to implicitly execute function '${fnName}'. Result:\n${res2}`,
+                },
+              ],
               role: "user",
             });
             this.history = contents;
@@ -488,29 +497,40 @@ var GeminiWithFiles = class GeminiWithFiles {
         }
 
         if (hallucinationOccurred) {
-          console.warn("[GeminiWithFiles] Hallucination detected. A requested function does not exist.");
-          const available = Object.keys(this.functions).filter((k) => k !== "params_").join(", ");
-          
+          console.warn(
+            "[GeminiWithFiles] Hallucination detected. A requested function does not exist.",
+          );
+          const available = Object.keys(this.functions)
+            .filter((k) => k !== "params_")
+            .join(", ");
+
           const lastModelMsg = contents[contents.length - 1];
           if (lastModelMsg && lastModelMsg.role === "model") {
-            lastModelMsg.parts = lastModelMsg.parts.map(p => {
+            lastModelMsg.parts = lastModelMsg.parts.map((p) => {
               if (p.functionCall) {
                 let fName = p.functionCall.name;
                 if (fName.includes(":")) fName = fName.split(":").pop();
-                if (fName.startsWith("google_interpreter_")) fName = fName.replace("google_interpreter_", "");
+                if (fName.startsWith("google_interpreter_"))
+                  fName = fName.replace("google_interpreter_", "");
                 if (typeof this.functions[fName] !== "function") {
-                  return { text: `[Model attempted to call non-existent function: ${fName}]` };
+                  return {
+                    text: `[Model attempted to call non-existent function: ${fName}]`,
+                  };
                 }
               }
               return p;
             });
           }
-          
+
           contents.push({
             role: "user",
-            parts: [{ text: `[System Intervention] You attempted to use a function that does not exist. Available tools are: [${available}]. DO NOT hallucinate or invent function names. Try again.` }]
+            parts: [
+              {
+                text: `[System Intervention] You attempted to use a function that does not exist. Available tools are: [${available}]. DO NOT hallucinate or invent function names. Try again.`,
+              },
+            ],
           });
-          
+
           this.history = contents;
           continueLoop = true;
 
@@ -582,10 +602,10 @@ var GeminiWithFiles = class GeminiWithFiles {
             },
           });
         }
-        
+
         contents.push({ parts: partss, role: "function" });
         this.history = contents;
-        
+
         if (forceHaltResult) {
           continueLoop = false;
         } else {
@@ -621,7 +641,10 @@ var GeminiWithFiles = class GeminiWithFiles {
     // Provide the forced halt response securely maintaining formatting configurations
     if (forceHaltResult) {
       if (this.exportTotalTokens) {
-        return { returnValue: forceHaltResult, usageMetadata: usageMetadataObj };
+        return {
+          returnValue: forceHaltResult,
+          usageMetadata: usageMetadataObj,
+        };
       }
       return forceHaltResult;
     }
