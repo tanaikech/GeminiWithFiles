@@ -5,7 +5,7 @@
 
 # IMPORTANT
 
-Gemini API is continually growing and evolving. With the release of GeminiWithFiles v2.x.x (and the latest v2.0.16), the library has undergone major updates, including support for the latest **Gemini 3.0 Flash Preview** model and **Agent Skills** (Progressive Disclosure architecture and Subagent Orchestration).
+Gemini API is continually growing and evolving. With the release of GeminiWithFiles v2.x.x (and the latest v2.0.30), the library has undergone major updates, including support for the latest **Gemini 3.1 Flash Lite** model, detailed token usage tracking, and **Agent Skills** (Progressive Disclosure architecture and Subagent Orchestration).
 
 If you want to use the legacy GeminiWithFiles v1.x.x, please see [here](old_v1.x.x/README.md).
 
@@ -23,7 +23,7 @@ By utilizing this library, developers can effortlessly upload files (images, PDF
 
 As large language models (LLMs) continue to advance, Google's Gemini models have opened up unprecedented possibilities for converting unstructured data (like images, videos, and PDFs) into structured, actionable insights.
 
-With the latest **Gemini 3.0** capabilities, the context window and multimodal processing power have reached new heights. You can now analyze massive documents, batch-process images, and natively interpret PDF data directly without third-party conversions. [Ref](https://ai.google.dev/gemini-api/docs/prompting_with_media?hl=en#supported_file_formats) [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
+With the latest **Gemini 3.1** capabilities, the context window and multimodal processing power have reached new heights. You can now analyze massive documents, batch-process images, and natively interpret PDF data directly without third-party conversions. [Ref](https://ai.google.dev/gemini-api/docs/prompting_with_media?hl=en#supported_file_formats) [Ref](https://medium.com/google-cloud/gemini-api-revolutionizing-content-generation-with-direct-pdf-input-105493780fa4)
 
 While Gemini does not natively parse Google Workspace proprietary formats (Docs, Sheets, Slides) directly, we can use workarounds like converting them to PDF and leveraging the Gemini API's direct PDF input features.
 
@@ -149,7 +149,7 @@ const g = new GeminiWithFiles(configObject);
 {
   apiKey: "YOUR_API_KEY",                     // {String} Required if not using OAuth.
   accessToken: "OAUTH_TOKEN",                 // {String} Optional.
-  model: "models/gemini-3-flash-preview",     // {String} Default model.
+  model: "models/gemini-3.1-flash-lite",      // {String} Default model.
   version: "v1beta",                          // {String} API version. Default is "v1beta".
   doCountToken: false,                        // {Boolean} If true, logs request tokens.
   history:[],                                // {Array} Chat history to preload.
@@ -159,7 +159,7 @@ const g = new GeminiWithFiles(configObject);
   response_json_schema: {},                   // {Object} Alternative JSON Schema definition.
   temperature: 0.7,                           // {Number} Controls randomness.
   systemInstruction: { parts: [...] },        // {Object|String} System prompt instruction.
-  exportTotalTokens: false,                   // {Boolean} Returns usageMetadata in response.
+  exportTotalTokens: false,                   // {Boolean} When true, result exports total tokens including separate inputTokenCount and outputTokenCount.
   exportRawData: false,                       // {Boolean} Returns the raw API response object.
   toolConfig: {},                             // {Object} Force or restrict function calling modes.
   tools:[],                                  // {Array} Native tools, e.g., [{ codeExecution: {} }].
@@ -170,7 +170,7 @@ const g = new GeminiWithFiles(configObject);
 }
 ```
 
-_Note: The default model is `models/gemini-3-flash-preview`. You can easily swap to another model (e.g., `models/gemini-2.5-pro`) by providing the `model` property._
+_Note: The default model is `models/gemini-3.1-flash-lite`. You can easily swap to another model (e.g., `models/gemini-3.0-flash`) by providing the `model` property._
 
 ---
 
@@ -699,5 +699,13 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
 
 - v2.0.29 (May 15, 2026)
   1. Several bugs were removed.
+
+- v2.0.30 (June 9, 2026)
+  1. Default model changed to `models/gemini-3.1-flash-lite`.
+  2. Updated `exportTotalTokens` behavior to return detailed token usage (`inputTokenCount`, `outputTokenCount`, and `totalTokenCount`) in addition to `usageMetadata`.
+  3. Added helper method `_extractOriginalFilename` to safely extract original filenames from the Gemini File API `displayName` format (handling prefixes/suffixes safely).
+  4. Improved PDF page sorting logic in `withUploadedFilesByGenerateContent` to only sort when multiple page parts are present.
+  5. Fixed potential error when `systemInstruction.parts` contains parts without text.
+  6. Replaced `batchGenerateContent` comments and tidied up documentation.
 
 [TOP](#top)

@@ -22,7 +22,7 @@ var _instance = null;
  * {Object} object API key or access token for using Gemini API.
  * {String} object.apiKey API key.
  * {String} object.accessToken Access token.
- * {String} object.model Model. Default is "models/gemini-3-flash-preview".
+ * {String} object.model Model. Default is "models/gemini-3.1-flash-lite".
  * {String} object.version Version of API. Default is "v1beta".
  * {Boolean} object.doCountToken Default is false. If this is true, when Gemini API is requested, the token of request is shown in the log.
  * {Array} object.history History for continuing chat.
@@ -35,7 +35,7 @@ var _instance = null;
  * {Object} object.responseJsonSchema JSON schema for controlling the output format.
  * {Number} object.temperature Control the randomness of the output.
  * {Object} object.systemInstruction System instruction for the model.
- * {Boolean} object.exportTotalTokens When this is true, the total tokens are exported as the result value.
+ * {Boolean} object.exportTotalTokens When this is true, the result exports total tokens including separate inputTokenCount and outputTokenCount.
  * {Boolean} object.exportRawData Returns the raw data returned from Gemini API.
  * {Object} object.toolConfig If you want to directly give the object of "toolConfig", please use this.
  * {Array} object.tools For example, when you want to use "codeExecution", please set `tools: [{ codeExecution: {}}]`.
@@ -171,7 +171,7 @@ function deleteFiles(names, n = 50) {
  *
  * @param {Object} object Object containing request parameters for Gemini API.
  * @param {String} [object.q] Input text.
- * @returns {(String|Number|Array|Object|Boolean)} Output value.
+ * @returns {(String|Number|Array|Object|Boolean)} Output value. If `exportTotalTokens` is true, an object with token details is returned.
  */
 function generateContent(object) {
   if (!_instance)
@@ -180,23 +180,6 @@ function generateContent(object) {
     );
   return _instance.generateContent(object);
 }
-
-/**
- * Development suspended on 20250722
- * ref: https://issuetracker.google.com/issues/431365432
- */
-// /**
-//  * ### Description
-//  * This method is used for generating content by the batch requests.
-//  * ref: https://ai.google.dev/gemini-api/docs/batch-mode
-//  *
-//  * @param {Object} object Object for generating content by the batch requests.
-//  * @return {Object} Response value as an object.
-//  */
-// function batchGenerateContent(object) {
-//   if (!_instance) throw new Error("GeminiWithFiles is not initialized. Please call geminiWithFiles(object) first.");
-//   return _instance.batchGenerateContent(object);
-// }
 
 /**
  * ### Description
