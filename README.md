@@ -708,4 +708,8 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
   5. Fixed potential error when `systemInstruction.parts` contains parts without text.
   6. Replaced `batchGenerateContent` comments and tidied up documentation.
 
+- v2.1.0 (June 24, 2026)
+  1. Added integration with `GasHookManager` to support pre-model execution validation (`BeforeModel` hook) and post-model evaluation/mocking (`AfterModel` hook) for complete ecosystem alignment.
+  2. Optimized error handling inside standard UrlFetch responses.
+
 [TOP](#top)

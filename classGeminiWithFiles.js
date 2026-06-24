@@ -1,7 +1,7 @@
 /**
  * GeminiWithFiles
  * Author: Kanshi Tanaike
- * Version: 2.0.30
+ * Version: 2.1.0
  * GitHub: https://github.com/tanaikech/GeminiWithFiles
  * @class
  */
@@ -273,7 +273,7 @@ var GeminiWithFiles = class GeminiWithFiles {
     return results;
   }
 
-  generateContent(object, retry) {
+  generateContentInternal(object, retry) {
     if (!object || typeof object !== "object")
       throw new Error("Please set object including question.");
     if (retry === undefined) retry = this.skillFolderId ? 15 : 5;
@@ -836,11 +836,63 @@ var GeminiWithFiles = class GeminiWithFiles {
     return params ? `${url}?${params}` : url;
   }
 
+  setHookManager(hookManager) {
+    this.hookManager = hookManager;
+    return this;
+  }
+
+  generateContent(object, retry) {
+    if (this.hookManager) {
+      const beforeResult = this.hookManager.execute("BeforeModel", {
+        config: this,
+        query: (object && object.q) || "",
+        history: this.history || [],
+        model: this.model
+      });
+
+      if (beforeResult.decision === "deny") {
+        throw new Error("Model request blocked by GeminiWithFiles BeforeModel hook.");
+      }
+
+      if (beforeResult.query && object) {
+        object.q = beforeResult.query;
+      }
+
+      const mockedResponse = beforeResult.hookSpecificOutput?.llm_response || beforeResult.llm_response;
+      if (mockedResponse && mockedResponse.text !== undefined) {
+        return { returnValue: mockedResponse.text, totalTokenCount: 0 };
+      }
+    }
+
+    const rawRes = this.generateContentInternal(object, retry);
+
+    if (this.hookManager) {
+      const textVal = typeof rawRes === 'string' ? rawRes : (rawRes.returnValue || "");
+      const afterResult = this.hookManager.execute("AfterModel", {
+        text: textVal,
+        response: rawRes,
+        model: this.model
+      });
+
+      if (afterResult.decision === "deny") {
+        throw new Error("Model response blocked and discarded by AfterModel hook.");
+      }
+
+      const modifiedResponse = afterResult.hookSpecificOutput?.llm_response || afterResult.llm_response;
+      if (modifiedResponse && modifiedResponse.text !== undefined) {
+        return { returnValue: modifiedResponse.text, totalTokenCount: rawRes.totalTokenCount || 0 };
+      }
+    }
+
+    return rawRes;
+  }
+
   fetch_(obj, checkError = true) {
     obj.muteHttpExceptions = true;
     const res = UrlFetchApp.fetchAll([obj])[0];
-    if (checkError && res.getResponseCode() !== 200)
+    if (checkError && res.getResponseCode() !== 200) {
       throw new Error(res.getContentText());
+    }
     return res;
   }
 };
