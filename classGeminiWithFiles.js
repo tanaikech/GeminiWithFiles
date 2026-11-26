@@ -31,11 +31,14 @@ var GeminiWithFiles = class GeminiWithFiles {
       resumableUploadAsNewUpload = false,
       generationConfig = {},
       skillFolderId,
+      useParametersJsonSchema = false,
     } = object;
 
-    // Updated default model to models/gemini-3.1-flash-lite
-    this.model = model || "models/gemini-3.1-flash-lite";
+    // Updated default model to models/gemini-4-hydrogen
+    this.model = model || "models/gemini-4-hydrogen";
     this.version = version || "v1beta";
+    this.useParametersJsonSchema = Boolean(useParametersJsonSchema);
+    this._lastModelParts = [];
 
     const baseUrl = "https://generativelanguage.googleapis.com";
     this.urlGenerateContent = `${baseUrl}/${this.version}/${this.model}:generateContent`;
@@ -284,24 +287,36 @@ var GeminiWithFiles = class GeminiWithFiles {
     if (!q && jsonSchema && !parts)
       q = `Follow JSON schema.<JSONSchema>${JSON.stringify(jsonSchema)}</JSONSchema>`;
 
-    // Sanitize parameters to avoid INVALID_ARGUMENT crashes caused by empty required arrays.
+    // Build function_declarations: use parametersJsonSchema when opted in on v1beta,
+    // otherwise recursively sanitize parameters for universal OpenAPI 3.0 Schema compatibility.
     const function_declarations = Object.entries(this.functions).reduce(
       (acc, [k, v]) => {
         if (k !== "params_") {
-          let parameters = this.functions.params_[k]?.parameters;
-          if (
-            parameters &&
-            Array.isArray(parameters.required) &&
-            parameters.required.length === 0
-          ) {
-            parameters = { ...parameters };
-            delete parameters.required;
-          }
-          acc.push({
+          const rawParameters = this.functions.params_[k]?.parameters;
+          const decl = {
             name: k,
             description: this.functions.params_[k]?.description,
-            parameters: parameters,
-          });
+          };
+          if (this.useParametersJsonSchema && this.version === "v1beta") {
+            if (rawParameters && typeof rawParameters === "object") {
+              const isEmptyObj =
+                String(rawParameters.type || "").toLowerCase() === "object" &&
+                (!rawParameters.properties ||
+                  Object.keys(rawParameters.properties).length === 0);
+              if (!isEmptyObj) {
+                decl.parametersJsonSchema = rawParameters;
+              }
+            }
+          } else {
+            const sanitizedParameters = this._sanitizeToolParameters(
+              rawParameters,
+              true,
+            );
+            if (sanitizedParameters !== undefined) {
+              decl.parameters = sanitizedParameters;
+            }
+          }
+          acc.push(decl);
         }
         return acc;
       },
@@ -335,12 +350,18 @@ var GeminiWithFiles = class GeminiWithFiles {
 
     let check = [];
     let usageMetadataObj;
+    let cumulativeInputTokens = 0;
+    let cumulativeOutputTokens = 0;
+    let cumulativeTotalTokens = 0;
+    let llmCallCount = 0;
     let results = [];
+    let lastPartsAr = [];
     let rawResult = {};
     let multipleResults = false;
     let continueLoop = false;
     let toolCallHistory = new Set();
     let forceHaltResult = null;
+    const isGemini4 = /(?:^|\/)gemini-4(?:[-.]|$)/i.test(this.model);
 
     const url = this.addQueryParameters_(
       this.urlGenerateContent,
@@ -355,9 +376,10 @@ var GeminiWithFiles = class GeminiWithFiles {
       return {
         returnValue: val,
         usageMetadata: usageMetadataObj,
-        inputTokenCount: usageMetadataObj?.promptTokenCount || 0,
-        outputTokenCount: usageMetadataObj?.candidatesTokenCount || 0,
-        totalTokenCount: usageMetadataObj?.totalTokenCount || 0,
+        inputTokenCount: cumulativeInputTokens,
+        outputTokenCount: cumulativeOutputTokens,
+        totalTokenCount: cumulativeTotalTokens,
+        llmCallCount,
       };
     };
 
@@ -372,14 +394,59 @@ var GeminiWithFiles = class GeminiWithFiles {
       if (toolsArray.length > 0) payload.tools = toolsArray;
 
       payload.generationConfig = { ...this.generationConfig };
+      if (payload.generationConfig.thinkingConfig) {
+        payload.generationConfig.thinkingConfig = {
+          ...payload.generationConfig.thinkingConfig,
+        };
+      }
       if (this.response_mime_type)
         payload.generationConfig.response_mime_type = this.response_mime_type;
       if (this.response_schema) {
+        delete payload.generationConfig.responseJsonSchema;
+        delete payload.generationConfig.response_json_schema;
         payload.generationConfig.response_schema = this.response_schema;
         payload.generationConfig.response_mime_type = "application/json";
+      } else if (this.response_json_schema) {
+        delete payload.generationConfig.response_schema;
+        delete payload.generationConfig.responseSchema;
+        payload.generationConfig.responseJsonSchema = this.response_json_schema;
+        if (
+          !payload.generationConfig.response_mime_type &&
+          !payload.generationConfig.responseMimeType
+        ) {
+          payload.generationConfig.response_mime_type = "application/json";
+        }
       }
       if (this.temperature !== null)
         payload.generationConfig.temperature = this.temperature;
+
+      // Gemini 4 compatibility guard: enforce thinkingLevel-only & strip HTTP-400-prone params
+      if (isGemini4) {
+        delete payload.generationConfig.frequencyPenalty;
+        delete payload.generationConfig.frequency_penalty;
+        delete payload.generationConfig.presencePenalty;
+        delete payload.generationConfig.presence_penalty;
+        delete payload.generationConfig.candidateCount;
+        delete payload.generationConfig.candidate_count;
+        if (payload.generationConfig.thinkingConfig) {
+          const tc = payload.generationConfig.thinkingConfig;
+          if (tc.thinkingBudget !== undefined) {
+            const oldBudget = tc.thinkingBudget;
+            delete tc.thinkingBudget;
+            if (oldBudget === 0 && !tc.thinkingLevel) {
+              tc.thinkingLevel = "LOW";
+            }
+            console.warn(
+              "[GeminiWithFiles] Stripped unsupported 'thinkingBudget' for Gemini 4 model.",
+            );
+          }
+          if (tc.thinkingLevel) {
+            const normLevel = String(tc.thinkingLevel).toUpperCase();
+            tc.thinkingLevel = normLevel === "MINIMAL" ? "LOW" : normLevel;
+          }
+        }
+      }
+
       if (this.systemInstruction)
         payload.systemInstruction = this.systemInstruction;
 
@@ -389,14 +456,20 @@ var GeminiWithFiles = class GeminiWithFiles {
         (this.tools && this.tools.length > 0)
       ) {
         currentToolConfig.functionCallingConfig =
-          currentToolConfig.functionCallingConfig || { mode: "AUTO" };
+          currentToolConfig.functionCallingConfig
+            ? { ...currentToolConfig.functionCallingConfig }
+            : { mode: "AUTO" };
+        if (currentToolConfig.functionCallingConfig.mode) {
+          currentToolConfig.functionCallingConfig.mode = String(
+            currentToolConfig.functionCallingConfig.mode,
+          ).toUpperCase();
+        }
         if (
           function_declarations.length > 0 &&
           this.tools &&
           this.tools.length > 0
         ) {
           currentToolConfig.includeServerSideToolInvocations = true;
-          currentToolConfig.include_server_side_tool_invocations = true;
         }
       }
       if (Object.keys(currentToolConfig).length > 0)
@@ -429,6 +502,14 @@ var GeminiWithFiles = class GeminiWithFiles {
       rawResult = raw;
       const { candidates, usageMetadata } = raw;
       usageMetadataObj = usageMetadata;
+      llmCallCount++;
+      if (usageMetadata) {
+        cumulativeInputTokens += usageMetadata.promptTokenCount || 0;
+        cumulativeOutputTokens +=
+          (usageMetadata.candidatesTokenCount || 0) +
+          (usageMetadata.thoughtsTokenCount || 0);
+        cumulativeTotalTokens += usageMetadata.totalTokenCount || 0;
+      }
 
       if (!candidates || candidates.length === 0) break;
       const candidate = candidates[0];
@@ -484,7 +565,10 @@ var GeminiWithFiles = class GeminiWithFiles {
             this.history = contents;
             continueLoop = true;
 
-            if (this.toolConfig?.functionCallingConfig?.mode === "any") {
+            if (
+              this.toolConfig?.functionCallingConfig?.mode?.toUpperCase() ===
+              "ANY"
+            ) {
               this.toolConfig.functionCallingConfig.mode = "AUTO";
               delete this.toolConfig.functionCallingConfig.allowedFunctionNames;
             }
@@ -503,13 +587,15 @@ var GeminiWithFiles = class GeminiWithFiles {
       }
 
       const partsAr = candidate.content.parts;
+      lastPartsAr = partsAr;
+      this._lastModelParts = partsAr;
       results.push(...partsAr);
       contents.push({ parts: [...partsAr], role: "model" });
 
       check = partsAr.filter((pp) => pp.functionCall?.name);
       continueLoop = false;
       let hasCodeExecutionResult = partsAr.some((pp) => pp.codeExecutionResult);
-      let hasText = partsAr.some((pp) => pp.text);
+      let hasText = partsAr.some((pp) => pp.text && !pp.thought);
 
       if (check.length > 0) {
         if (check.length > 1) multipleResults = true;
@@ -565,7 +651,10 @@ var GeminiWithFiles = class GeminiWithFiles {
           this.history = contents;
           continueLoop = true;
 
-          if (this.toolConfig?.functionCallingConfig?.mode === "any") {
+          if (
+            this.toolConfig?.functionCallingConfig?.mode?.toUpperCase() ===
+            "ANY"
+          ) {
             this.toolConfig.functionCallingConfig.mode = "AUTO";
             delete this.toolConfig.functionCallingConfig.allowedFunctionNames;
           }
@@ -580,7 +669,7 @@ var GeminiWithFiles = class GeminiWithFiles {
           if (functionName.startsWith("google_interpreter_"))
             functionName = functionName.replace("google_interpreter_", "");
 
-          const argsObj = chk.functionCall.args || null;
+          const argsObj = chk.functionCall.args || {};
           const sig = `${functionName}::${JSON.stringify(argsObj)}`;
           let res2;
 
@@ -634,14 +723,17 @@ var GeminiWithFiles = class GeminiWithFiles {
           });
         }
 
-        contents.push({ parts: partss, role: "function" });
+        contents.push({ parts: partss, role: "user" });
         this.history = contents;
 
         if (forceHaltResult) {
           continueLoop = false;
         } else {
           continueLoop = true;
-          if (this.toolConfig?.functionCallingConfig?.mode === "any") {
+          if (
+            this.toolConfig?.functionCallingConfig?.mode?.toUpperCase() ===
+            "ANY"
+          ) {
             this.toolConfig.functionCallingConfig.mode = "AUTO";
             delete this.toolConfig.functionCallingConfig.allowedFunctionNames;
           }
@@ -673,19 +765,27 @@ var GeminiWithFiles = class GeminiWithFiles {
       return formatReturnValue(forceHaltResult);
     }
 
-    const output = results[results.length - 1];
+    const nonThoughtTextParts = (lastPartsAr || []).filter(
+      (p) => p && typeof p.text === "string" && !p.thought,
+    );
+    const nonThoughtParts = (lastPartsAr || []).filter((p) => p && !p.thought);
+    const output =
+      nonThoughtParts[nonThoughtParts.length - 1] ||
+      results[results.length - 1];
+
     if (
       !output ||
       (output.finishReason &&
         ["OTHER", "RECITATION"].includes(output.finishReason))
     )
-      return "No values.";
+      return formatReturnValue("No values.");
 
-    let returnValue = multipleResults
-      ? results.filter((pp) => pp.functionResponse)
-      : output.text
-        ? output.text.trim()
-        : output;
+    let returnValue =
+      nonThoughtTextParts.length > 0
+        ? nonThoughtTextParts.map((p) => p.text).join("").trim()
+        : output.text && !output.thought
+          ? output.text.trim()
+          : output;
 
     let parsedReturnValue;
     try {
@@ -822,6 +922,97 @@ var GeminiWithFiles = class GeminiWithFiles {
       description: descMatch ? descMatch[1].trim() : "",
       instructions: match[2].trim(),
     };
+  }
+
+  /**
+   * Recursively sanitizes JSON Schema / MCP inputSchema objects for Gemini
+   * FunctionDeclaration.parameters (OpenAPI 3.0 Schema protobuf) using a strict
+   * whitelist so unknown JSON Schema or vendor keywords (e.g., `deprecated`,
+   * `x-google-enum-descriptions`, `$schema`, `additionalProperties`, `default`)
+   * can never trigger HTTP 400 INVALID_ARGUMENT.
+   */
+  _sanitizeToolParameters(schema, isRoot = false) {
+    if (!schema || typeof schema !== "object") return undefined;
+
+    const allowedKeys = new Set([
+      "type",
+      "format",
+      "description",
+      "nullable",
+      "enum",
+      "items",
+      "maxItems",
+      "minItems",
+      "properties",
+      "required",
+      "anyOf",
+      "minimum",
+      "maximum",
+      "pattern",
+    ]);
+
+    const cleaned = {};
+    for (const [k, v] of Object.entries(schema)) {
+      if (!allowedKeys.has(k) || v === undefined) continue;
+
+      if (k === "type") {
+        if (Array.isArray(v)) {
+          const nonNull = v.find((t) => String(t).toLowerCase() !== "null");
+          if (nonNull) cleaned.type = nonNull;
+          if (v.some((t) => String(t).toLowerCase() === "null")) {
+            cleaned.nullable = true;
+          }
+        } else {
+          cleaned.type = v;
+        }
+      } else if (k === "required") {
+        if (Array.isArray(v) && v.length > 0) {
+          cleaned.required = v;
+        }
+      } else if (k === "properties" && v && typeof v === "object") {
+        const cleanedProps = {};
+        for (const [pk, pv] of Object.entries(v)) {
+          const sanitizedProp = this._sanitizeToolParameters(pv, false);
+          if (sanitizedProp !== undefined) {
+            cleanedProps[pk] = sanitizedProp;
+          }
+        }
+        if (Object.keys(cleanedProps).length > 0) {
+          cleaned.properties = cleanedProps;
+        }
+      } else if (k === "items" && v && typeof v === "object") {
+        const itemSchema = Array.isArray(v) ? v[0] : v;
+        const sanitizedItems = this._sanitizeToolParameters(itemSchema, false);
+        if (sanitizedItems !== undefined) {
+          cleaned.items = sanitizedItems;
+        }
+      } else if (k === "anyOf" && Array.isArray(v)) {
+        const sanitizedAnyOf = v
+          .map((item) => this._sanitizeToolParameters(item, false))
+          .filter((item) => item !== undefined);
+        if (sanitizedAnyOf.length > 0) {
+          cleaned.anyOf = sanitizedAnyOf;
+        }
+      } else {
+        cleaned[k] = v;
+      }
+    }
+
+    if (cleaned.required && cleaned.properties) {
+      cleaned.required = cleaned.required.filter(
+        (rk) => Object.prototype.hasOwnProperty.call(cleaned.properties, rk),
+      );
+      if (cleaned.required.length === 0) delete cleaned.required;
+    }
+
+    if (
+      String(cleaned.type || "").toLowerCase() === "object" &&
+      (!cleaned.properties || Object.keys(cleaned.properties).length === 0)
+    ) {
+      return isRoot ? undefined : cleaned;
+    }
+
+    return Object.keys(cleaned).length > 0 ? cleaned : undefined;
   }
 
   addQueryParameters_(url, obj) {
