@@ -1136,6 +1136,7 @@ var GeminiWithFiles = class GeminiWithFiles {
       "properties",
       "required",
       "anyOf",
+      "oneOf",
       "minimum",
       "maximum",
       "pattern",
@@ -1176,7 +1177,7 @@ var GeminiWithFiles = class GeminiWithFiles {
         if (sanitizedItems !== undefined) {
           cleaned.items = sanitizedItems;
         }
-      } else if (k === "anyOf" && Array.isArray(v)) {
+      } else if ((k === "anyOf" || k === "oneOf") && Array.isArray(v)) {
         const sanitizedAnyOf = v
           .map((item) => this._sanitizeToolParameters(item, false))
           .filter((item) => item !== undefined);
@@ -1193,6 +1194,12 @@ var GeminiWithFiles = class GeminiWithFiles {
         (rk) => Object.prototype.hasOwnProperty.call(cleaned.properties, rk),
       );
       if (cleaned.required.length === 0) delete cleaned.required;
+    }
+
+    // OpenAPI 3.0 / Gemini API requires every array schema (including 2D arrays like Sheets MCP update_formulas)
+    // to define a non-empty `items` schema.
+    if (String(cleaned.type || "").toLowerCase() === "array" && !cleaned.items) {
+      cleaned.items = { type: "string" };
     }
 
     if (
