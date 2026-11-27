@@ -617,20 +617,65 @@ var GeminiWithFiles = class GeminiWithFiles {
         }
       }
 
-      if ([500, 502, 503, 429].includes(code) && retry > 0) {
+      const httpErrorRetries = Number(object._httpErrorRetries || 0);
+      if ([500, 502, 503, 504, 429].includes(code) && retry > 0 && httpErrorRetries < 2) {
+        let retryModel = normActiveModel;
+        let retryGenConfig = activeGenConfig;
+        let retryDecision = routingDecision;
+
+        // If a heavyweight frontierMax model hits 503/504, step down to frontierFast (MEDIUM) to prevent repeated GAS hangs
+        if (
+          [503, 504].includes(code) &&
+          typeof GeminiDecisionsRouter === "function"
+        ) {
+          const cfgStep = GeminiDecisionsRouter.normalizeRoutingConfig(this.modelRouting);
+          const frontierMaxModel = GeminiDecisionsRouter.normalizeModelName(
+            cfgStep.modelPool.frontierMax || "models/gemini-4-carbon",
+          );
+          if (cfgStep.mode !== "fixed" && normActiveModel === frontierMaxModel) {
+            const stepDownModel = GeminiDecisionsRouter.normalizeModelName(
+              cfgStep.modelPool.frontierFast || "models/gemini-4-argon",
+            );
+            const normStep = GeminiDecisionsRouter.normalizeThinkingConfig(
+              stepDownModel,
+              "MEDIUM",
+              activeGenConfig,
+              cfgStep.modelCatalog,
+              { allowXHighInGas: cfgStep.allowXHighInGas },
+            );
+            retryModel = stepDownModel;
+            retryGenConfig = normStep.generationConfig;
+            retryDecision = {
+              ...(routingDecision || {}),
+              model: stepDownModel,
+              thinkingLevel: normStep.resolvedThinkingLevel,
+              thinkingConfig: normStep.generationConfig.thinkingConfig || null,
+              reason: `frontier_timeout_stepdown(${normActiveModel}->${stepDownModel}, HTTP ${code})`,
+              fallbackReason: `HTTP ${code} on ${normActiveModel}`,
+            };
+            if (cfgStep.logRouting !== false) {
+              const msg = GeminiDecisionsRouter.formatLogMessage(retryDecision);
+              if (typeof this.onRoutingLog === "function") this.onRoutingLog(msg, retryDecision);
+              else console.log(msg);
+            }
+          }
+        }
+
         console.warn(
-          `[GeminiWithFiles] Caught HTTP ${code}. Retrying in 3 seconds...`,
+          `[GeminiWithFiles] Caught HTTP ${code} (attempt ${httpErrorRetries + 1}/2). Retrying in 3 seconds with ${retryModel}...`,
         );
         Utilities.sleep(3000);
-        return this.generateContent(
+        return this.generateContentInternal(
           {
             q,
             jsonSchema,
             parts,
             _routingResolved: true,
-            _pinnedModel: normActiveModel,
-            _pinnedGenConfig: activeGenConfig,
-            _pinnedRoutingDecision: routingDecision,
+            _paidFallbackAttempted: object._paidFallbackAttempted,
+            _httpErrorRetries: httpErrorRetries + 1,
+            _pinnedModel: retryModel,
+            _pinnedGenConfig: retryGenConfig,
+            _pinnedRoutingDecision: retryDecision,
           },
           retry,
         );
@@ -1440,8 +1485,8 @@ var GeminiDecisionsRouter =
               max_capability_override: {
                 default: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
                 withTools: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
-                synthesizer: { tier: "frontierMax", thinkingLevel: "HIGH" },
-                direct: { tier: "frontierMax", thinkingLevel: "HIGH" },
+                synthesizer: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
+                direct: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
               },
             },
             quality: {
@@ -1465,14 +1510,14 @@ var GeminiDecisionsRouter =
               frontier: {
                 default: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
                 withTools: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
-                synthesizer: { tier: "frontierMax", thinkingLevel: "HIGH" },
-                direct: { tier: "frontierMax", thinkingLevel: "HIGH" },
+                synthesizer: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
+                direct: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
               },
               max_capability_override: {
                 default: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
                 withTools: { tier: "frontierFast", thinkingLevel: "MEDIUM" },
-                synthesizer: { tier: "frontierMax", thinkingLevel: "HIGH" },
-                direct: { tier: "frontierMax", thinkingLevel: "HIGH" },
+                synthesizer: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
+                direct: { tier: "frontierMax", thinkingLevel: "MEDIUM" },
               },
             },
           };
