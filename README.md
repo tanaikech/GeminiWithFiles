@@ -580,6 +580,26 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
 
 ---
 
+## Dynamic Model & Thinking Routing (Gemini Decisions API)
+
+`GeminiWithFiles` supports automatic model and `thinkingLevel` selection powered by the **Gemini Decisions API (`gemini-decision-1`, 0 output tokens)** across the 6-model pool (`gemini-3.5-flash-lite`, `gemini-3.8-flash`, `gemini-4-hydrogen`, `gemini-4-neon`, `gemini-4-argon`, `gemini-4-carbon`).
+
+- **`modelRouting: "efficient"` (Default)**: Routes simple/standard tasks to low-cost fast models (`gemini-3.5-flash-lite` / `gemini-3.8-flash` / `gemini-4-hydrogen`) and automatically escalates to frontier models (`gemini-4-argon` / `gemini-4-carbon`) when complex reasoning or explicit maximum-capability directives are detected in the prompt.
+- **`modelRouting: "quality"`**: Prioritizes maximum accuracy and deeper thinking over cost, with GAS 6-minute execution timeout guardrails.
+- **`modelRouting: "fixed"`**: Bypasses the Decisions API completely and uses only the configured `model` and `generationConfig`.
+- **Automatic Free-Tier Fallback (`billingTier: "auto"`)**: If a Paid-only model (`neon`/`argon`/`carbon`) returns HTTP 403/429, automatically falls back to `models/gemini-4-hydrogen`.
+- **Per-Generation Logging & JSON Comparison**: Logs `[ModelRouting] role=... | mode=... | model=... | thinking=... | reason=...` on every generation call. Use `getModelRoutingConfig()` / `previewModelRouting(prompt)` to inspect/compare modes as JSON, and `GeminiDecisionsRouter.configureDefaults(...)` / `registerModels(...)` to customize for future Gemini models.
+
+```javascript
+const g = new GeminiWithFiles({
+  apiKey: "YOUR_GEMINI_API_KEY",
+  modelRouting: "efficient", // "efficient" (default) | "quality" | "fixed"
+});
+console.log(JSON.stringify(g.getModelRoutingConfig(), null, 2)); // Compare modes as JSON
+const res = g.generateContent({ q: "Summarize this text." });
+```
+
+---
 <a name="licence"></a>
 
 # Licence
@@ -711,5 +731,10 @@ I have proposed several feature requests to the Google issue tracker. [Ref](http
 - v2.1.0 (June 24, 2026)
   1. Added integration with `GasHookManager` to support pre-model execution validation (`BeforeModel` hook) and post-model evaluation/mocking (`AfterModel` hook) for complete ecosystem alignment.
   2. Optimized error handling inside standard UrlFetch responses.
+
+- v2.1.1 (November 27, 2026)
+  1. Upgraded default model to `models/gemini-4-hydrogen` with full Gemini 4 compatibility (`role: "user"` for `functionResponse`, strict Gemini `Schema` protobuf whitelist, `thinkingLevel` guard).
+  2. Embedded zero-dependency `GeminiDecisionsRouter` (`gemini-decision-1`) with `modelRouting: "efficient" | "quality" | "fixed"` (default `"efficient"`) across the 6-model pool, automatic Free-Tier fallback (`billingTier: "auto"`), and per-generation `[ModelRouting]` logging.
+  3. Added `getModelRoutingConfig()`, `previewModelRouting(prompt)`, `GeminiWithFiles.configureModelRouting()`, and `GeminiDecisionsRouter.registerModels()` for JSON mode comparison and future-model external customization.
 
 [TOP](#top)
